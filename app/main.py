@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 from app.api.v1.health import router as health_router
 from app.api.v1.router import api_router
@@ -19,3 +20,4 @@ app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
 
 app.include_router(health_router)
 app.include_router(api_router, prefix="/api/v1")
+app.mount("/demo", StaticFiles(directory="app/static", html=True), name="demo")

@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LogiPulse — Demo Paneli</title>
+<style>
+  :root {
+    --primary: #16a34a;
+    --primary-dark: #15803d;
+    --bg: #f4f6f8;
+    --card-bg: #ffffff;
+    --text: #1f2937;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --danger: #dc2626;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  header {
+    background: var(--primary-dark);
+    color: white;
+    padding: 20px 32px;
+  }
+  header h1 { margin: 0; font-size: 20px; }
+  header p { margin: 4px 0 0; opacity: 0.85; font-size: 13px; }
+  .container {
+    max-width: 960px;
+    margin: 24px auto;
+    padding: 0 16px 60px;
+    display: grid;
+    gap: 20px;
+  }
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+  }
+  .card h2 { margin-top: 0; font-size: 16px; }
+  label { display: block; font-size: 13px; margin: 10px 0 4px; color: var(--muted); }
+  input, select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 14px;
+  }
+  button {
+    margin-top: 14px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 9px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  button:hover { background: var(--primary-dark); }
+  button.secondary {
+    background: transparent;
+    color: var(--primary-dark);
+    border: 1px solid var(--primary);
+  }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .row > div { flex: 1; min-width: 160px; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+  .tabs button { margin-top: 0; background: var(--border); color: var(--text); }
+  .tabs button.active { background: var(--primary); color: white; }
+  .hidden { display: none !important; }
+  .msg { font-size: 13px; margin-top: 10px; min-height: 16px; }
+  .msg.error { color: var(--danger); }
+  .msg.success { color: var(--primary-dark); }
+  .stat { display: flex; gap: 24px; flex-wrap: wrap; }
+  .stat .box {
+    flex: 1;
+    min-width: 140px;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .stat .box .value { font-size: 24px; font-weight: 700; color: var(--primary-dark); }
+  .stat .box .label { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    background: #e0f2fe;
+    color: #075985;
+  }
+  .userbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: var(--muted);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>LogiPulse — Demo Paneli</h1>
+  <p>Bu sayfa, backend API'yi görsel olarak test etmek için hazırlanmıştır (gerçek ürün arayüzü değildir).</p>
+</header>
+
+<div class="container">
+
+  <div class="card" id="auth-card">
+    <div class="tabs">
+      <button id="tab-login" class="active" onclick="switchTab('login')">Giriş Yap</button>
+      <button id="tab-register" onclick="switchTab('register')">Kayıt Ol</button>
+    </div>
+
+    <div id="login-form">
+      <label>E-posta</label>
+      <input type="email" id="login-email" placeholder="ornek@sirket.com">
+      <label>Şifre</label>
+      <input type="password" id="login-password" placeholder="••••••••">
+      <button onclick="login()">Giriş Yap</button>
+      <div id="login-msg" class="msg"></div>
+    </div>
+
+    <div id="register-form" class="hidden">
+      <div class="row">
+        <div>
+          <label>Ad Soyad / Şirket Yetkilisi</label>
+          <input type="text" id="reg-name" placeholder="Örn: Merve Sena Doğan">
+        </div>
+        <div>
+          <label>Rol</label>
+          <select id="reg-role">
+            <option value="admin">admin (şirket yöneticisi)</option>
+            <option value="driver">driver (kurye)</option>
+          </select>
+        </div>
+      </div>
+      <label>E-posta</label>
+      <input type="email" id="reg-email" placeholder="ornek@sirket.com">
+      <label>Şifre</label>
+      <input type="password" id="reg-password" placeholder="En az 6 karakter">
+      <button onclick="register()">Kayıt Ol</button>
+      <div id="register-msg" class="msg"></div>
+    </div>
+  </div>
+
+  <div class="card hidden" id="dashboard-card">
+    <div class="userbar">
+      <span id="user-info"></span>
+      <button class="secondary" onclick="logout()">Çıkış Yap</button>
+    </div>
+  </div>
+
+  <div class="card hidden" id="stats-card">
+    <h2>Özet</h2>
+    <div class="stat">
+      <div class="box">
+        <div class="value" id="stat-route-count">0</div>
+        <div class="label">Toplam Rota</div>
+      </div>
+      <div class="box">
+        <div class="value" id="stat-total-km">0</div>
+        <div class="label">Toplam Mesafe (km)</div>
+      </div>
+      <div class="box">
+        <div class="value" id="stat-total-carbon">0</div>
+        <div class="label">Toplam Tahmini Karbon (kg)</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card hidden" id="create-route-card">
+    <h2>Yeni Rota Oluştur</h2>
+    <div class="row">
+      <div>
+        <label>Nereden</label>
+        <input type="text" id="route-origin" placeholder="Istanbul">
+      </div>
+      <div>
+        <label>Nereye</label>
+        <input type="text" id="route-destination" placeholder="Ankara">
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Mesafe (km)</label>
+        <input type="number" id="route-distance" placeholder="100">
+      </div>
+      <div>
+        <label>Araç Tipi</label>
+        <select id="route-vehicle">
+          <option value="bicycle">Bisiklet</option>
+          <option value="motorcycle">Motosiklet</option>
+          <option value="van">Van</option>
+          <option value="electric_van">Elektrikli Van</option>
+          <option value="truck">Kamyon</option>
+        </select>
+      </div>
+    </div>
+    <label>Atanan Sürücü ID (opsiyonel)</label>
+    <input type="text" id="route-driver-id" placeholder="Sürücünün kullanıcı ID'si">
+    <button onclick="createRoute()">Rota Oluştur</button>
+    <div id="route-msg" class="msg"></div>
+  </div>
+
+  <div class="card hidden" id="routes-card">
+    <h2>Rotalar</h2>
+    <button class="secondary" onclick="loadRoutes()">Yenile</button>
+    <table>
+      <thead>
+        <tr>
+          <th>Güzergah</th>
+          <th>Mesafe</th>
+          <th>Araç Tipi</th>
+          <th>Tahmini Karbon</th>
+          <th>Atanan Sürücü</th>
+        </tr>
+      </thead>
+      <tbody id="routes-tbody"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+  const API_BASE = window.location.origin;
+  let token = localStorage.getItem('logipulse_token') || null;
+  let currentUser = null;
+
+  const vehicleLabels = {
+    bicycle: 'Bisiklet',
+    motorcycle: 'Motosiklet',
+    van: 'Van',
+    electric_van: 'Elektrikli Van',
+    truck: 'Kamyon',
+  };
+
+  function switchTab(tab) {
+    document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+    document.getElementById('tab-register').classList.toggle('active', tab === 'register');
+    document.getElementById('login-form').classList.toggle('hidden', tab !== 'login');
+    document.getElementById('register-form').classList.toggle('hidden', tab !== 'register');
+  }
+
+  async function register() {
+    const msg = document.getElementById('register-msg');
+    msg.textContent = '';
+    msg.className = 'msg';
+    const body = {
+      full_name: document.getElementById('reg-name').value,
+      email: document.getElementById('reg-email').value,
+      password: document.getElementById('reg-password').value,
+      role: document.getElementById('reg-role').value,
+    };
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Kayıt başarısız');
+      msg.textContent = 'Kayıt başarılı! Şimdi giriş yapabilirsin.';
+      msg.className = 'msg success';
+      switchTab('login');
+      document.getElementById('login-email').value = body.email;
+    } catch (err) {
+      msg.textContent = err.message;
+      msg.className = 'msg error';
+    }
+  }
+
+  async function login() {
+    const msg = document.getElementById('login-msg');
+    msg.textContent = '';
+    msg.className = 'msg';
+    const email = document.getElementById('login-email').value;
+    const password = document.getElementById('login-password').value;
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Giriş başarısız');
+      token = data.access_token;
+      localStorage.setItem('logipulse_token', token);
+      await afterLogin();
+    } catch (err) {
+      msg.textContent = err.message;
+      msg.className = 'msg error';
+    }
+  }
+
+  async function afterLogin() {
+    const res = await fetch(`${API_BASE}/api/v1/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      logout();
+      return;
+    }
+    currentUser = await res.json();
+
+    document.getElementById('auth-card').classList.add('hidden');
+    document.getElementById('dashboard-card').classList.remove('hidden');
+    document.getElementById('stats-card').classList.remove('hidden');
+    document.getElementById('routes-card').classList.remove('hidden');
+
+    document.getElementById('user-info').textContent =
+      `Giriş yapıldı: ${currentUser.full_name} (${currentUser.email}) — Rol: ${currentUser.role}`;
+
+    if (currentUser.role === 'admin') {
+      document.getElementById('create-route-card').classList.remove('hidden');
+    } else {
+      document.getElementById('create-route-card').classList.add('hidden');
+    }
+
+    loadRoutes();
+  }
+
+  function logout() {
+    token = null;
+    currentUser = null;
+    localStorage.removeItem('logipulse_token');
+    document.getElementById('auth-card').classList.remove('hidden');
+    document.getElementById('dashboard-card').classList.add('hidden');
+    document.getElementById('stats-card').classList.add('hidden');
+    document.getElementById('create-route-card').classList.add('hidden');
+    document.getElementById('routes-card').classList.add('hidden');
+  }
+
+  async function createRoute() {
+    const msg = document.getElementById('route-msg');
+    msg.textContent = '';
+    msg.className = 'msg';
+    const body = {
+      origin: document.getElementById('route-origin').value,
+      destination: document.getElementById('route-destination').value,
+      distance_km: parseFloat(document.getElementById('route-distance').value),
+      vehicle_type: document.getElementById('route-vehicle').value,
+    };
+    const driverId = document.getElementById('route-driver-id').value.trim();
+    if (driverId) body.assigned_driver_id = driverId;
+
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/routes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Rota oluşturulamadı');
+      msg.textContent = `Rota oluşturuldu — tahmini karbon: ${data.estimated_carbon_kg} kg`;
+      msg.className = 'msg success';
+      loadRoutes();
+    } catch (err) {
+      msg.textContent = err.message;
+      msg.className = 'msg error';
+    }
+  }
+
+  async function loadRoutes() {
+    const res = await fetch(`${API_BASE}/api/v1/routes`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return;
+    const routes = await res.json();
+
+    const tbody = document.getElementById('routes-tbody');
+    tbody.innerHTML = '';
+    let totalKm = 0;
+    let totalCarbon = 0;
+
+    routes.forEach((r) => {
+      totalKm += r.distance_km;
+      totalCarbon += r.estimated_carbon_kg;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${r.origin} → ${r.destination}</td>
+        <td>${r.distance_km} km</td>
+        <td><span class="badge">${vehicleLabels[r.vehicle_type] || r.vehicle_type}</span></td>
+        <td>${r.estimated_carbon_kg} kg</td>
+        <td>${r.assigned_driver_id || '—'}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    document.getElementById('stat-route-count').textContent = routes.length;
+    document.getElementById('stat-total-km').textContent = totalKm.toFixed(1);
+    document.getElementById('stat-total-carbon').textContent = totalCarbon.toFixed(2);
+  }
+
+  if (token) {
+    afterLogin();
+  }
+</script>
+
+</body>
+</html>
