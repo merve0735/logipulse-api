@@ -13,3 +13,7 @@ class BaseRepository:
     async def insert_one(self, document: dict) -> Any:
         result = await self.collection.insert_one(document)
         return result.inserted_id
+
+    async def update_one(self, query: dict, update: dict) -> int:
+        result = await self.collection.update_one(query, {"$set": update})
+        return result.modified_count

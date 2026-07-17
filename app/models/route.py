@@ -20,6 +20,10 @@ class RouteCreate(BaseModel):
     assigned_driver_id: Optional[str] = None
 
 
+class AssignDriverRequest(BaseModel):
+    driver_id: str
+
+
 class RouteOut(BaseModel):
     id: str
     origin: str
