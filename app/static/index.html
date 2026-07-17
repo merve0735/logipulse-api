@@ -181,35 +181,34 @@
 
   <div class="card hidden" id="create-route-card">
     <h2>Yeni Rota Oluştur</h2>
-    <div class="row">
-      <div>
-        <label>Nereden</label>
-        <input type="text" id="route-origin" placeholder="Istanbul">
+    <div id="no-vehicles-msg" class="msg error hidden">Önce bir araç oluşturmalısınız.</div>
+    <div id="route-form-fields">
+      <div class="row">
+        <div>
+          <label>Nereden</label>
+          <input type="text" id="route-origin" placeholder="Istanbul">
+        </div>
+        <div>
+          <label>Nereye</label>
+          <input type="text" id="route-destination" placeholder="Ankara">
+        </div>
       </div>
-      <div>
-        <label>Nereye</label>
-        <input type="text" id="route-destination" placeholder="Ankara">
+      <div class="row">
+        <div>
+          <label>Mesafe (km)</label>
+          <input type="number" id="route-distance" placeholder="100">
+        </div>
+        <div>
+          <label>Beklenen Gelir (TL)</label>
+          <input type="number" id="route-revenue" placeholder="500">
+        </div>
       </div>
+      <label>Araç</label>
+      <select id="route-vehicle-id"></select>
+      <label>Atanan Sürücü ID (opsiyonel)</label>
+      <input type="text" id="route-driver-id" placeholder="Sürücünün kullanıcı ID'si">
+      <button onclick="createRoute()">Rota Oluştur</button>
     </div>
-    <div class="row">
-      <div>
-        <label>Mesafe (km)</label>
-        <input type="number" id="route-distance" placeholder="100">
-      </div>
-      <div>
-        <label>Araç Tipi</label>
-        <select id="route-vehicle">
-          <option value="bicycle">Bisiklet</option>
-          <option value="motorcycle">Motosiklet</option>
-          <option value="van">Van</option>
-          <option value="electric_van">Elektrikli Van</option>
-          <option value="truck">Kamyon</option>
-        </select>
-      </div>
-    </div>
-    <label>Atanan Sürücü ID (opsiyonel)</label>
-    <input type="text" id="route-driver-id" placeholder="Sürücünün kullanıcı ID'si">
-    <button onclick="createRoute()">Rota Oluştur</button>
     <div id="route-msg" class="msg"></div>
   </div>
 
@@ -238,11 +237,9 @@
   let currentUser = null;
 
   const vehicleLabels = {
-    bicycle: 'Bisiklet',
-    motorcycle: 'Motosiklet',
-    van: 'Van',
     electric_van: 'Elektrikli Van',
-    truck: 'Kamyon',
+    diesel_van: 'Dizel Van',
+    motorcycle: 'Motosiklet',
   };
 
   function switchTab(tab) {
@@ -323,11 +320,33 @@
 
     if (currentUser.role === 'admin') {
       document.getElementById('create-route-card').classList.remove('hidden');
+      loadVehicleOptions();
     } else {
       document.getElementById('create-route-card').classList.add('hidden');
     }
 
     loadRoutes();
+  }
+
+  async function loadVehicleOptions() {
+    const res = await fetch(`${API_BASE}/api/v1/vehicles`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return;
+    const vehicles = await res.json();
+
+    const select = document.getElementById('route-vehicle-id');
+    select.innerHTML = '';
+    vehicles.forEach((v) => {
+      const option = document.createElement('option');
+      option.value = v.id;
+      option.textContent = `${v.plate_number} - ${v.vehicle_type}`;
+      select.appendChild(option);
+    });
+
+    const noVehicles = vehicles.length === 0;
+    document.getElementById('no-vehicles-msg').classList.toggle('hidden', !noVehicles);
+    document.getElementById('route-form-fields').classList.toggle('hidden', noVehicles);
   }
 
   function logout() {
@@ -349,7 +368,8 @@
       origin: document.getElementById('route-origin').value,
       destination: document.getElementById('route-destination').value,
       distance_km: parseFloat(document.getElementById('route-distance').value),
-      vehicle_type: document.getElementById('route-vehicle').value,
+      vehicle_id: document.getElementById('route-vehicle-id').value,
+      expected_revenue: parseFloat(document.getElementById('route-revenue').value),
     };
     const driverId = document.getElementById('route-driver-id').value.trim();
     if (driverId) body.assigned_driver_id = driverId;
@@ -365,7 +385,10 @@
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'Rota oluşturulamadı');
-      msg.textContent = `Rota oluşturuldu — tahmini karbon: ${data.estimated_carbon_kg} kg`;
+      msg.textContent =
+        `Rota oluşturuldu — Araç: ${data.vehicle_plate_number} | ` +
+        `Maliyet: ${data.estimated_cost} TL | Kâr: ${data.estimated_profit} TL | ` +
+        `Karbon: ${data.estimated_carbon_kg} kg`;
       msg.className = 'msg success';
       loadRoutes();
     } catch (err) {
