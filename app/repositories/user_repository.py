@@ -11,3 +11,6 @@ class UserRepository(BaseRepository):
 
     async def create(self, user_doc: dict):
         return await self.insert_one(user_doc)
+
+    async def list_by_role(self, role: str) -> list[dict]:
+        return [doc async for doc in self.collection.find({"role": role})]

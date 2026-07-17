@@ -13,6 +13,10 @@ def get_user_repository() -> UserRepository:
     return UserRepository()
 
 
+def to_user_out(doc: dict) -> UserOut:
+    return UserOut(id=str(doc["_id"]), full_name=doc["full_name"], email=doc["email"], role=UserRole(doc["role"]))
+
+
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 async def register(user_in: UserCreate, repo: UserRepository = Depends(get_user_repository)):
     existing_user = await repo.get_by_email(user_in.email)
@@ -48,4 +52,4 @@ async def read_current_user(
     user = await repo.find_one({"_id": ObjectId(current_user.id)})
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanıcı bulunamadı")
-    return UserOut(id=str(user["_id"]), full_name=user["full_name"], email=user["email"], role=UserRole(user["role"]))
+    return to_user_out(user)

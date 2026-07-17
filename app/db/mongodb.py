@@ -13,6 +13,7 @@ mongodb = MongoDB()
 async def connect_to_mongo() -> None:
     mongodb.client = AsyncIOMotorClient(settings.MONGO_URI)
     await mongodb.client[settings.MONGO_DB_NAME]["users"].create_index("email", unique=True)
+    await mongodb.client[settings.MONGO_DB_NAME]["vehicles"].create_index("plate_number", unique=True)
 
 
 async def close_mongo_connection() -> None:
