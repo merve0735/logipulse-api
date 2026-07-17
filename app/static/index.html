@@ -90,6 +90,7 @@
   table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
   th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
   th { color: var(--muted); font-weight: 600; }
+  td button { margin-top: 0; padding: 4px 10px; font-size: 12px; }
   .badge {
     display: inline-block;
     padding: 2px 8px;
@@ -295,14 +296,17 @@
   <div class="card hidden" id="routes-card">
     <h2>Rotalar</h2>
     <button class="secondary" onclick="loadRoutes()">Yenile</button>
+    <div id="routes-action-msg" class="msg"></div>
     <table>
       <thead>
         <tr>
           <th>Güzergah</th>
           <th>Mesafe</th>
           <th>Araç Tipi</th>
+          <th>Durum</th>
           <th>Tahmini Karbon</th>
           <th>Atanan Sürücü</th>
+          <th>İşlem</th>
         </tr>
       </thead>
       <tbody id="routes-tbody"></tbody>
@@ -320,6 +324,14 @@
     electric_van: 'Elektrikli Van',
     diesel_van: 'Dizel Van',
     motorcycle: 'Motosiklet',
+  };
+
+  const statusLabels = {
+    pending: 'Bekliyor',
+    assigned: 'Atandı',
+    in_progress: 'Yolda',
+    delivered: 'Teslim Edildi',
+    cancelled: 'İptal Edildi',
   };
 
   function switchTab(tab) {
@@ -533,13 +545,29 @@
     routes.forEach((r) => {
       totalKm += r.distance_km;
       totalCarbon += r.estimated_carbon_kg;
+
+      let actions = '—';
+      if (currentUser.role === 'driver') {
+        if (r.status === 'assigned') {
+          actions = `<button onclick="startRoute('${r.id}')">Başlat</button>`;
+        } else if (r.status === 'in_progress') {
+          actions = `<button onclick="deliverRoute('${r.id}')">Teslim Edildi</button>`;
+        }
+      } else if (currentUser.role === 'admin') {
+        if (['pending', 'assigned', 'in_progress'].includes(r.status)) {
+          actions = `<button class="secondary" onclick="cancelRoute('${r.id}')">İptal Et</button>`;
+        }
+      }
+
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${r.origin} → ${r.destination}</td>
         <td>${r.distance_km} km</td>
         <td><span class="badge">${vehicleLabels[r.vehicle_type] || r.vehicle_type}</span></td>
+        <td>${statusLabels[r.status] || r.status}</td>
         <td>${r.estimated_carbon_kg} kg</td>
         <td>${r.assigned_driver_id || '—'}</td>
+        <td>${actions}</td>
       `;
       tbody.appendChild(tr);
     });
@@ -547,6 +575,37 @@
     document.getElementById('stat-route-count').textContent = routes.length;
     document.getElementById('stat-total-km').textContent = totalKm.toFixed(1);
     document.getElementById('stat-total-carbon').textContent = totalCarbon.toFixed(2);
+  }
+
+  async function patchRouteStatus(path, successLabel) {
+    const msg = document.getElementById('routes-action-msg');
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/routes/${path}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'İşlem başarısız');
+      msg.textContent = successLabel;
+      msg.className = 'msg success';
+      loadRoutes();
+      if (currentUser.role === 'admin') loadDashboardSummary();
+    } catch (err) {
+      msg.textContent = err.message;
+      msg.className = 'msg error';
+    }
+  }
+
+  function startRoute(routeId) {
+    patchRouteStatus(`${routeId}/start`, 'Rota başlatıldı.');
+  }
+
+  function deliverRoute(routeId) {
+    patchRouteStatus(`${routeId}/deliver`, 'Rota teslim edildi olarak işaretlendi.');
+  }
+
+  function cancelRoute(routeId) {
+    patchRouteStatus(`${routeId}/cancel`, 'Rota iptal edildi.');
   }
 
   if (token) {
