@@ -1,10 +1,14 @@
+from datetime import datetime
 from enum import Enum
 from typing import Optional
 
 from pydantic import BaseModel, Field
 
+from app.models.vehicle import FleetVehicleType
+
 
 class VehicleType(str, Enum):
+    # Artık RouteCreate tarafından kullanılmıyor; sadece app/services/carbon/ Strategy Pattern'i için duruyor.
     BICYCLE = "bicycle"
     MOTORCYCLE = "motorcycle"
     VAN = "van"
@@ -16,7 +20,8 @@ class RouteCreate(BaseModel):
     origin: str
     destination: str
     distance_km: float = Field(gt=0)
-    vehicle_type: VehicleType
+    vehicle_id: str
+    expected_revenue: float = Field(ge=0)
     assigned_driver_id: Optional[str] = None
 
 
@@ -29,7 +34,12 @@ class RouteOut(BaseModel):
     origin: str
     destination: str
     distance_km: float
-    vehicle_type: VehicleType
-    assigned_driver_id: Optional[str] = None
+    vehicle_id: str
+    vehicle_plate_number: str
+    vehicle_type: FleetVehicleType
     estimated_carbon_kg: float
+    estimated_cost: float
+    estimated_profit: float
+    assigned_driver_id: Optional[str] = None
     created_by: str
+    created_at: datetime

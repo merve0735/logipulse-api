@@ -1,3 +1,5 @@
+from bson import ObjectId
+
 from app.db.mongodb import get_database
 from app.repositories.base import BaseRepository
 
@@ -8,6 +10,9 @@ class VehicleRepository(BaseRepository):
 
     async def create(self, vehicle_doc: dict):
         return await self.insert_one(vehicle_doc)
+
+    async def get_by_id(self, vehicle_id: str):
+        return await self.find_one({"_id": ObjectId(vehicle_id)})
 
     async def get_by_plate_number(self, plate_number: str):
         return await self.find_one({"plate_number": plate_number})

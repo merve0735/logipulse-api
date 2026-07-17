@@ -3,12 +3,14 @@ from bson.errors import InvalidId
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.api.v1.auth import get_user_repository
+from app.api.v1.vehicles import get_vehicle_repository
 from app.core.deps import CurrentUser, get_current_user, require_role
 from app.models.route import AssignDriverRequest, RouteCreate, RouteOut
 from app.models.user import UserRole
 from app.repositories.route_repository import RouteRepository
 from app.repositories.user_repository import UserRepository
-from app.services.carbon.calculator import calculate_carbon_emission
+from app.repositories.vehicle_repository import VehicleRepository
+from app.services.route_service import RouteService
 
 router = APIRouter(prefix="/routes", tags=["routes"])
 
@@ -17,16 +19,28 @@ def get_route_repository() -> RouteRepository:
     return RouteRepository()
 
 
+def get_route_service(
+    route_repo: RouteRepository = Depends(get_route_repository),
+    vehicle_repo: VehicleRepository = Depends(get_vehicle_repository),
+) -> RouteService:
+    return RouteService(route_repo, vehicle_repo)
+
+
 def _to_route_out(doc: dict) -> RouteOut:
     return RouteOut(
         id=str(doc["_id"]),
         origin=doc["origin"],
         destination=doc["destination"],
         distance_km=doc["distance_km"],
+        vehicle_id=doc["vehicle_id"],
+        vehicle_plate_number=doc["vehicle_plate_number"],
         vehicle_type=doc["vehicle_type"],
-        assigned_driver_id=doc.get("assigned_driver_id"),
         estimated_carbon_kg=doc["estimated_carbon_kg"],
+        estimated_cost=doc["estimated_cost"],
+        estimated_profit=doc["estimated_profit"],
+        assigned_driver_id=doc.get("assigned_driver_id"),
         created_by=doc["created_by"],
+        created_at=doc["created_at"],
     )
 
 
@@ -34,22 +48,9 @@ def _to_route_out(doc: dict) -> RouteOut:
 async def create_route(
     route_in: RouteCreate,
     current_user: CurrentUser = Depends(require_role(UserRole.ADMIN)),
-    repo: RouteRepository = Depends(get_route_repository),
+    service: RouteService = Depends(get_route_service),
 ):
-    estimated_carbon_kg = calculate_carbon_emission(route_in.vehicle_type, route_in.distance_km)
-
-    route_doc = {
-        "origin": route_in.origin,
-        "destination": route_in.destination,
-        "distance_km": route_in.distance_km,
-        "vehicle_type": route_in.vehicle_type.value,
-        "assigned_driver_id": route_in.assigned_driver_id,
-        "estimated_carbon_kg": estimated_carbon_kg,
-        "created_by": current_user.id,
-    }
-    inserted_id = await repo.create(route_doc)
-    route_doc["_id"] = inserted_id
-
+    route_doc = await service.create_route(route_in, created_by=current_user.id)
     return _to_route_out(route_doc)
 
 
