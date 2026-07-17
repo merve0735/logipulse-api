@@ -35,6 +35,7 @@ def _to_route_out(doc: dict) -> RouteOut:
         vehicle_id=doc["vehicle_id"],
         vehicle_plate_number=doc["vehicle_plate_number"],
         vehicle_type=doc["vehicle_type"],
+        expected_revenue=doc["expected_revenue"],
         estimated_carbon_kg=doc["estimated_carbon_kg"],
         estimated_cost=doc["estimated_cost"],
         estimated_profit=doc["estimated_profit"],

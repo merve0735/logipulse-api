@@ -36,6 +36,7 @@ class RouteService:
             "vehicle_id": route_in.vehicle_id,
             "vehicle_plate_number": vehicle["plate_number"],
             "vehicle_type": vehicle["vehicle_type"],
+            "expected_revenue": route_in.expected_revenue,
             "estimated_carbon_kg": estimated_carbon_kg,
             "estimated_cost": estimated_cost,
             "estimated_profit": estimated_profit,

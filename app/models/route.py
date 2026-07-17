@@ -37,6 +37,7 @@ class RouteOut(BaseModel):
     vehicle_id: str
     vehicle_plate_number: str
     vehicle_type: FleetVehicleType
+    expected_revenue: float
     estimated_carbon_kg: float
     estimated_cost: float
     estimated_profit: float
