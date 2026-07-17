@@ -1,9 +1,13 @@
-from fastapi import APIRouter, Depends, status
+from bson import ObjectId
+from bson.errors import InvalidId
+from fastapi import APIRouter, Depends, HTTPException, status
 
+from app.api.v1.auth import get_user_repository
 from app.core.deps import CurrentUser, get_current_user, require_role
-from app.models.route import RouteCreate, RouteOut
+from app.models.route import AssignDriverRequest, RouteCreate, RouteOut
 from app.models.user import UserRole
 from app.repositories.route_repository import RouteRepository
+from app.repositories.user_repository import UserRepository
 from app.services.carbon.calculator import calculate_carbon_emission
 
 router = APIRouter(prefix="/routes", tags=["routes"])
@@ -60,3 +64,40 @@ async def list_routes(
         routes = await repo.list_by_driver(current_user.id)
 
     return [_to_route_out(route) for route in routes]
+
+
+@router.get("/my-routes", response_model=list[RouteOut])
+async def list_my_routes(
+    current_user: CurrentUser = Depends(require_role(UserRole.DRIVER)),
+    repo: RouteRepository = Depends(get_route_repository),
+):
+    routes = await repo.list_by_driver(current_user.id)
+    return [_to_route_out(route) for route in routes]
+
+
+@router.patch("/{route_id}/assign-driver", response_model=RouteOut)
+async def assign_driver(
+    route_id: str,
+    assign_in: AssignDriverRequest,
+    current_user: CurrentUser = Depends(require_role(UserRole.ADMIN)),
+    route_repo: RouteRepository = Depends(get_route_repository),
+    user_repo: UserRepository = Depends(get_user_repository),
+):
+    try:
+        route = await route_repo.get_by_id(route_id)
+    except InvalidId:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Geçersiz rota ID")
+    if not route:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rota bulunamadı")
+
+    try:
+        driver = await user_repo.find_one({"_id": ObjectId(assign_in.driver_id)})
+    except InvalidId:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Geçersiz sürücü ID")
+    if not driver or driver["role"] != UserRole.DRIVER.value:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Geçerli bir sürücü değil")
+
+    await route_repo.assign_driver(route_id, assign_in.driver_id)
+    route["assigned_driver_id"] = assign_in.driver_id
+
+    return _to_route_out(route)
