@@ -98,6 +98,16 @@
     background: #e0f2fe;
     color: #075985;
   }
+  .info-box {
+    flex: 1;
+    min-width: 200px;
+    background: #f9fafb;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 13px;
+  }
+  .info-box strong { display: block; margin-bottom: 4px; font-size: 12px; color: var(--muted); }
   .userbar {
     display: flex;
     justify-content: space-between;
@@ -158,6 +168,76 @@
     <div class="userbar">
       <span id="user-info"></span>
       <button class="secondary" onclick="logout()">Çıkış Yap</button>
+    </div>
+  </div>
+
+  <div class="card hidden" id="admin-summary-card">
+    <h2>Yönetici Özeti</h2>
+    <div id="summary-empty-msg" class="msg hidden">Henüz raporlanacak rota yok.</div>
+    <div id="summary-content" class="hidden">
+      <div class="stat">
+        <div class="box">
+          <div class="value" id="sum-total-routes">0</div>
+          <div class="label">Toplam Rota</div>
+        </div>
+        <div class="box">
+          <div class="value" id="sum-total-distance">0</div>
+          <div class="label">Toplam Mesafe (km)</div>
+        </div>
+        <div class="box">
+          <div class="value" id="sum-total-revenue">0</div>
+          <div class="label">Toplam Gelir (TL)</div>
+        </div>
+        <div class="box">
+          <div class="value" id="sum-total-cost">0</div>
+          <div class="label">Toplam Maliyet (TL)</div>
+        </div>
+        <div class="box">
+          <div class="value" id="sum-total-profit">0</div>
+          <div class="label">Toplam Kâr (TL)</div>
+        </div>
+        <div class="box">
+          <div class="value" id="sum-total-carbon">0</div>
+          <div class="label">Toplam Karbon (kg)</div>
+        </div>
+      </div>
+
+      <div class="stat" style="margin-top: 16px;">
+        <div class="box">
+          <div class="value" id="sum-avg-profit">0</div>
+          <div class="label">Rota Başına Ortalama Kâr (TL)</div>
+        </div>
+        <div class="box">
+          <div class="value" id="sum-avg-carbon">0</div>
+          <div class="label">Rota Başına Ortalama Karbon (kg)</div>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top: 16px;">
+        <div class="info-box">
+          <strong>En Kârlı Rota</strong>
+          <div id="sum-best-route-detail">—</div>
+        </div>
+        <div class="info-box">
+          <strong>En Zararlı Rota</strong>
+          <div id="sum-worst-route-detail">—</div>
+        </div>
+      </div>
+
+      <div class="stat" style="margin-top: 16px;">
+        <div class="box">
+          <div class="value" id="sum-electric-count">0</div>
+          <div class="label">Elektrikli Rota</div>
+        </div>
+        <div class="box">
+          <div class="value" id="sum-diesel-count">0</div>
+          <div class="label">Dizel Rota</div>
+        </div>
+        <div class="box">
+          <div class="value" id="sum-moto-count">0</div>
+          <div class="label">Motosiklet Rota</div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -320,12 +400,52 @@
 
     if (currentUser.role === 'admin') {
       document.getElementById('create-route-card').classList.remove('hidden');
+      document.getElementById('admin-summary-card').classList.remove('hidden');
       loadVehicleOptions();
+      loadDashboardSummary();
     } else {
       document.getElementById('create-route-card').classList.add('hidden');
+      document.getElementById('admin-summary-card').classList.add('hidden');
     }
 
     loadRoutes();
+  }
+
+  async function loadDashboardSummary() {
+    const res = await fetch(`${API_BASE}/api/v1/dashboard/summary`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return;
+    const s = await res.json();
+
+    const isEmpty = s.total_routes === 0;
+    document.getElementById('summary-empty-msg').classList.toggle('hidden', !isEmpty);
+    document.getElementById('summary-content').classList.toggle('hidden', isEmpty);
+    if (isEmpty) return;
+
+    document.getElementById('sum-total-routes').textContent = s.total_routes;
+    document.getElementById('sum-total-distance').textContent = s.total_distance_km.toFixed(1);
+    document.getElementById('sum-total-revenue').textContent = s.total_expected_revenue.toFixed(2);
+    document.getElementById('sum-total-cost').textContent = s.total_estimated_cost.toFixed(2);
+
+    const profitEl = document.getElementById('sum-total-profit');
+    profitEl.textContent = s.total_estimated_profit.toFixed(2);
+    profitEl.style.color = s.total_estimated_profit < 0 ? 'var(--danger)' : '';
+
+    document.getElementById('sum-total-carbon').textContent = s.total_estimated_carbon_kg.toFixed(2);
+    document.getElementById('sum-avg-profit').textContent = s.average_profit_per_route.toFixed(2);
+    document.getElementById('sum-avg-carbon').textContent = s.average_carbon_per_route.toFixed(2);
+
+    document.getElementById('sum-best-route-detail').textContent = s.most_profitable_route
+      ? `${s.most_profitable_route.name} (${s.most_profitable_route.vehicle_plate_number}) — ${s.most_profitable_route.estimated_profit} TL`
+      : '—';
+    document.getElementById('sum-worst-route-detail').textContent = s.least_profitable_route
+      ? `${s.least_profitable_route.name} (${s.least_profitable_route.vehicle_plate_number}) — ${s.least_profitable_route.estimated_profit} TL`
+      : '—';
+
+    document.getElementById('sum-electric-count').textContent = s.electric_route_count;
+    document.getElementById('sum-diesel-count').textContent = s.diesel_route_count;
+    document.getElementById('sum-moto-count').textContent = s.motorcycle_route_count;
   }
 
   async function loadVehicleOptions() {
@@ -356,6 +476,7 @@
     document.getElementById('auth-card').classList.remove('hidden');
     document.getElementById('dashboard-card').classList.add('hidden');
     document.getElementById('stats-card').classList.add('hidden');
+    document.getElementById('admin-summary-card').classList.add('hidden');
     document.getElementById('create-route-card').classList.add('hidden');
     document.getElementById('routes-card').classList.add('hidden');
   }
