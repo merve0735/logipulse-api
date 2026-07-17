@@ -22,3 +22,6 @@ class RouteRepository(BaseRepository):
 
     async def assign_driver(self, route_id: str, driver_id: str) -> int:
         return await self.update_one({"_id": ObjectId(route_id)}, {"assigned_driver_id": driver_id})
+
+    async def update_status(self, route_id: str, status: str) -> int:
+        return await self.update_one({"_id": ObjectId(route_id)}, {"status": status})

@@ -16,6 +16,14 @@ class VehicleType(str, Enum):
     TRUCK = "truck"
 
 
+class RouteStatus(str, Enum):
+    PENDING = "pending"
+    ASSIGNED = "assigned"
+    IN_PROGRESS = "in_progress"
+    DELIVERED = "delivered"
+    CANCELLED = "cancelled"
+
+
 class RouteCreate(BaseModel):
     origin: str
     destination: str
@@ -41,6 +49,7 @@ class RouteOut(BaseModel):
     estimated_carbon_kg: float
     estimated_cost: float
     estimated_profit: float
+    status: RouteStatus
     assigned_driver_id: Optional[str] = None
     created_by: str
     created_at: datetime

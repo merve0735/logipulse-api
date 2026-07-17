@@ -39,6 +39,7 @@ def _to_route_out(doc: dict) -> RouteOut:
         estimated_carbon_kg=doc["estimated_carbon_kg"],
         estimated_cost=doc["estimated_cost"],
         estimated_profit=doc["estimated_profit"],
+        status=doc["status"],
         assigned_driver_id=doc.get("assigned_driver_id"),
         created_by=doc["created_by"],
         created_at=doc["created_at"],
@@ -82,16 +83,9 @@ async def assign_driver(
     route_id: str,
     assign_in: AssignDriverRequest,
     current_user: CurrentUser = Depends(require_role(UserRole.ADMIN)),
-    route_repo: RouteRepository = Depends(get_route_repository),
     user_repo: UserRepository = Depends(get_user_repository),
+    service: RouteService = Depends(get_route_service),
 ):
-    try:
-        route = await route_repo.get_by_id(route_id)
-    except InvalidId:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Geçersiz rota ID")
-    if not route:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rota bulunamadı")
-
     try:
         driver = await user_repo.find_one({"_id": ObjectId(assign_in.driver_id)})
     except InvalidId:
@@ -99,7 +93,35 @@ async def assign_driver(
     if not driver or driver["role"] != UserRole.DRIVER.value:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Geçerli bir sürücü değil")
 
-    await route_repo.assign_driver(route_id, assign_in.driver_id)
-    route["assigned_driver_id"] = assign_in.driver_id
+    route_doc = await service.assign_driver(route_id, assign_in.driver_id)
+    return _to_route_out(route_doc)
 
-    return _to_route_out(route)
+
+@router.patch("/{route_id}/start", response_model=RouteOut)
+async def start_route(
+    route_id: str,
+    current_user: CurrentUser = Depends(require_role(UserRole.DRIVER)),
+    service: RouteService = Depends(get_route_service),
+):
+    route_doc = await service.start_route(route_id, driver_id=current_user.id)
+    return _to_route_out(route_doc)
+
+
+@router.patch("/{route_id}/deliver", response_model=RouteOut)
+async def deliver_route(
+    route_id: str,
+    current_user: CurrentUser = Depends(require_role(UserRole.DRIVER)),
+    service: RouteService = Depends(get_route_service),
+):
+    route_doc = await service.deliver_route(route_id, driver_id=current_user.id)
+    return _to_route_out(route_doc)
+
+
+@router.patch("/{route_id}/cancel", response_model=RouteOut)
+async def cancel_route(
+    route_id: str,
+    current_user: CurrentUser = Depends(require_role(UserRole.ADMIN)),
+    service: RouteService = Depends(get_route_service),
+):
+    route_doc = await service.cancel_route(route_id)
+    return _to_route_out(route_doc)
