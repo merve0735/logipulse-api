@@ -109,6 +109,30 @@
     font-size: 13px;
   }
   .info-box strong { display: block; margin-bottom: 4px; font-size: 12px; color: var(--muted); }
+  .alert-card {
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--muted);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    font-size: 13px;
+  }
+  .alert-card.high { border-left-color: var(--danger); }
+  .alert-card.medium { border-left-color: #d97706; }
+  .alert-card.low { border-left-color: var(--muted); }
+  .alert-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .alert-type { font-size: 11px; color: var(--muted); text-transform: uppercase; }
+  .severity-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    color: white;
+  }
+  .severity-badge.high { background: var(--danger); }
+  .severity-badge.medium { background: #d97706; }
+  .severity-badge.low { background: var(--muted); }
   .userbar {
     display: flex;
     justify-content: space-between;
@@ -242,6 +266,12 @@
     </div>
   </div>
 
+  <div class="card hidden" id="admin-alerts-card">
+    <h2>Uyarılar</h2>
+    <div id="alerts-empty-msg" class="msg hidden">Şu anda aktif uyarı yok.</div>
+    <div id="alerts-list"></div>
+  </div>
+
   <div class="card hidden" id="stats-card">
     <h2>Özet</h2>
     <div class="stat">
@@ -334,6 +364,19 @@
     cancelled: 'İptal Edildi',
   };
 
+  const severityLabels = {
+    high: 'Yüksek',
+    medium: 'Orta',
+    low: 'Düşük',
+  };
+
+  const alertTypeLabels = {
+    negative_profit: 'Zarar Eden Rota',
+    high_carbon: 'Yüksek Karbon',
+    cancelled_route: 'İptal Edilen Rota',
+    diesel_high_emission: 'Yüksek Emisyonlu Dizel',
+  };
+
   function switchTab(tab) {
     document.getElementById('tab-login').classList.toggle('active', tab === 'login');
     document.getElementById('tab-register').classList.toggle('active', tab === 'register');
@@ -413,14 +456,43 @@
     if (currentUser.role === 'admin') {
       document.getElementById('create-route-card').classList.remove('hidden');
       document.getElementById('admin-summary-card').classList.remove('hidden');
+      document.getElementById('admin-alerts-card').classList.remove('hidden');
       loadVehicleOptions();
       loadDashboardSummary();
+      loadAlerts();
     } else {
       document.getElementById('create-route-card').classList.add('hidden');
       document.getElementById('admin-summary-card').classList.add('hidden');
+      document.getElementById('admin-alerts-card').classList.add('hidden');
     }
 
     loadRoutes();
+  }
+
+  async function loadAlerts() {
+    const res = await fetch(`${API_BASE}/api/v1/alerts`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return;
+    const alerts = await res.json();
+
+    document.getElementById('alerts-empty-msg').classList.toggle('hidden', alerts.length > 0);
+
+    const list = document.getElementById('alerts-list');
+    list.innerHTML = '';
+    alerts.forEach((a) => {
+      const card = document.createElement('div');
+      card.className = `alert-card ${a.severity}`;
+      card.innerHTML = `
+        <div class="alert-top">
+          <span class="alert-type">${alertTypeLabels[a.type] || a.type}</span>
+          <span class="severity-badge ${a.severity}">${severityLabels[a.severity] || a.severity}</span>
+        </div>
+        <div>${a.message}</div>
+        <div style="color: var(--muted); margin-top: 2px;">${a.route_name} — Değer: ${a.value}</div>
+      `;
+      list.appendChild(card);
+    });
   }
 
   async function loadDashboardSummary() {
@@ -489,6 +561,7 @@
     document.getElementById('dashboard-card').classList.add('hidden');
     document.getElementById('stats-card').classList.add('hidden');
     document.getElementById('admin-summary-card').classList.add('hidden');
+    document.getElementById('admin-alerts-card').classList.add('hidden');
     document.getElementById('create-route-card').classList.add('hidden');
     document.getElementById('routes-card').classList.add('hidden');
   }
@@ -589,7 +662,10 @@
       msg.textContent = successLabel;
       msg.className = 'msg success';
       loadRoutes();
-      if (currentUser.role === 'admin') loadDashboardSummary();
+      if (currentUser.role === 'admin') {
+        loadDashboardSummary();
+        loadAlerts();
+      }
     } catch (err) {
       msg.textContent = err.message;
       msg.className = 'msg error';
