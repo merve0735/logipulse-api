@@ -278,6 +278,113 @@
     <div id="recommendations-list"></div>
   </div>
 
+  <div class="card hidden" id="admin-report-card">
+    <h2 id="report-title">Sürdürülebilirlik Raporu</h2>
+    <div id="report-generated-at" style="font-size: 12px; color: var(--muted); margin-bottom: 8px;"></div>
+    <div id="report-executive-summary" style="margin-bottom: 12px;"></div>
+
+    <div class="info-box" style="margin-bottom: 16px;">
+      <strong>Değerlendirme</strong>
+      <div id="report-business-comment">—</div>
+    </div>
+
+    <h3 style="font-size: 14px; margin-bottom: 8px;">Finansal Özet</h3>
+    <div class="stat" style="margin-bottom: 8px;">
+      <div class="box">
+        <div class="value" id="report-fin-revenue">0</div>
+        <div class="label">Toplam Gelir (TL)</div>
+      </div>
+      <div class="box">
+        <div class="value" id="report-fin-cost">0</div>
+        <div class="label">Toplam Maliyet (TL)</div>
+      </div>
+      <div class="box">
+        <div class="value" id="report-fin-profit">0</div>
+        <div class="label">Toplam Kâr (TL)</div>
+      </div>
+      <div class="box">
+        <div class="value" id="report-fin-avg-profit">0</div>
+        <div class="label">Rota Başına Ort. Kâr (TL)</div>
+      </div>
+    </div>
+    <div class="row" style="margin-bottom: 16px;">
+      <div class="info-box">
+        <strong>En Kârlı Rota</strong>
+        <div id="report-fin-best">—</div>
+      </div>
+      <div class="info-box">
+        <strong>En Zararlı Rota</strong>
+        <div id="report-fin-worst">—</div>
+      </div>
+    </div>
+
+    <h3 style="font-size: 14px; margin-bottom: 8px;">Karbon Özeti</h3>
+    <div class="stat" style="margin-bottom: 16px;">
+      <div class="box">
+        <div class="value" id="report-carbon-total">0</div>
+        <div class="label">Toplam Karbon (kg)</div>
+      </div>
+      <div class="box">
+        <div class="value" id="report-carbon-avg">0</div>
+        <div class="label">Rota Başına Ort. Karbon (kg)</div>
+      </div>
+      <div class="box">
+        <div class="value" id="report-carbon-electric">0</div>
+        <div class="label">Elektrikli Rota</div>
+      </div>
+      <div class="box">
+        <div class="value" id="report-carbon-diesel">0</div>
+        <div class="label">Dizel Rota</div>
+      </div>
+      <div class="box">
+        <div class="value" id="report-carbon-moto">0</div>
+        <div class="label">Motosiklet Rota</div>
+      </div>
+    </div>
+
+    <h3 style="font-size: 14px; margin-bottom: 8px;">Risk Özeti</h3>
+    <div class="stat" style="margin-bottom: 16px;">
+      <div class="box">
+        <div class="value" id="report-risk-total">0</div>
+        <div class="label">Toplam Uyarı</div>
+      </div>
+      <div class="box">
+        <div class="value" id="report-risk-high">0</div>
+        <div class="label">Yüksek</div>
+      </div>
+      <div class="box">
+        <div class="value" id="report-risk-medium">0</div>
+        <div class="label">Orta</div>
+      </div>
+      <div class="box">
+        <div class="value" id="report-risk-low">0</div>
+        <div class="label">Düşük</div>
+      </div>
+    </div>
+
+    <h3 style="font-size: 14px; margin-bottom: 8px;">Öneri Özeti</h3>
+    <div class="stat">
+      <div class="box">
+        <div class="value" id="report-rec-total">0</div>
+        <div class="label">Toplam Öneri</div>
+      </div>
+      <div class="box">
+        <div class="value" id="report-rec-high">0</div>
+        <div class="label">Yüksek Öncelik</div>
+      </div>
+      <div class="box">
+        <div class="value" id="report-rec-medium">0</div>
+        <div class="label">Orta Öncelik</div>
+      </div>
+      <div class="box">
+        <div class="value" id="report-rec-low">0</div>
+        <div class="label">Düşük Öncelik</div>
+      </div>
+    </div>
+
+    <button class="secondary" onclick="loadSustainabilityReport()" style="margin-top: 16px;">Yenile</button>
+  </div>
+
   <div class="card hidden" id="stats-card">
     <h2>Özet</h2>
     <div class="stat">
@@ -471,15 +578,18 @@
       document.getElementById('admin-summary-card').classList.remove('hidden');
       document.getElementById('admin-alerts-card').classList.remove('hidden');
       document.getElementById('admin-recommendations-card').classList.remove('hidden');
+      document.getElementById('admin-report-card').classList.remove('hidden');
       loadVehicleOptions();
       loadDashboardSummary();
       loadAlerts();
       loadRecommendations();
+      loadSustainabilityReport();
     } else {
       document.getElementById('create-route-card').classList.add('hidden');
       document.getElementById('admin-summary-card').classList.add('hidden');
       document.getElementById('admin-alerts-card').classList.add('hidden');
       document.getElementById('admin-recommendations-card').classList.add('hidden');
+      document.getElementById('admin-report-card').classList.add('hidden');
     }
 
     loadRoutes();
@@ -538,6 +648,53 @@
       `;
       list.appendChild(card);
     });
+  }
+
+  async function loadSustainabilityReport() {
+    const res = await fetch(`${API_BASE}/api/v1/reports/sustainability`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return;
+    const r = await res.json();
+
+    document.getElementById('report-title').textContent = r.report_title;
+    document.getElementById('report-generated-at').textContent =
+      `Oluşturulma: ${new Date(r.generated_at).toLocaleString('tr-TR')}`;
+    document.getElementById('report-executive-summary').textContent = r.executive_summary;
+    document.getElementById('report-business-comment').textContent = r.business_comment;
+
+    const fin = r.financial_summary;
+    document.getElementById('report-fin-revenue').textContent = fin.total_expected_revenue.toFixed(2);
+    document.getElementById('report-fin-cost').textContent = fin.total_estimated_cost.toFixed(2);
+    const finProfitEl = document.getElementById('report-fin-profit');
+    finProfitEl.textContent = fin.total_estimated_profit.toFixed(2);
+    finProfitEl.style.color = fin.total_estimated_profit < 0 ? 'var(--danger)' : '';
+    document.getElementById('report-fin-avg-profit').textContent = fin.average_profit_per_route.toFixed(2);
+    document.getElementById('report-fin-best').textContent = fin.most_profitable_route
+      ? `${fin.most_profitable_route.name} (${fin.most_profitable_route.vehicle_plate_number}) — ${fin.most_profitable_route.estimated_profit} TL`
+      : '—';
+    document.getElementById('report-fin-worst').textContent = fin.least_profitable_route
+      ? `${fin.least_profitable_route.name} (${fin.least_profitable_route.vehicle_plate_number}) — ${fin.least_profitable_route.estimated_profit} TL`
+      : '—';
+
+    const carbon = r.carbon_summary;
+    document.getElementById('report-carbon-total').textContent = carbon.total_estimated_carbon_kg.toFixed(2);
+    document.getElementById('report-carbon-avg').textContent = carbon.average_carbon_per_route.toFixed(2);
+    document.getElementById('report-carbon-electric').textContent = carbon.electric_route_count;
+    document.getElementById('report-carbon-diesel').textContent = carbon.diesel_route_count;
+    document.getElementById('report-carbon-moto').textContent = carbon.motorcycle_route_count;
+
+    const risk = r.risk_summary;
+    document.getElementById('report-risk-total').textContent = risk.total_alert_count;
+    document.getElementById('report-risk-high').textContent = risk.high_alert_count;
+    document.getElementById('report-risk-medium').textContent = risk.medium_alert_count;
+    document.getElementById('report-risk-low').textContent = risk.low_alert_count;
+
+    const rec = r.recommendation_summary;
+    document.getElementById('report-rec-total').textContent = rec.total_recommendation_count;
+    document.getElementById('report-rec-high').textContent = rec.high_priority_count;
+    document.getElementById('report-rec-medium').textContent = rec.medium_priority_count;
+    document.getElementById('report-rec-low').textContent = rec.low_priority_count;
   }
 
   async function loadDashboardSummary() {
@@ -608,6 +765,7 @@
     document.getElementById('admin-summary-card').classList.add('hidden');
     document.getElementById('admin-alerts-card').classList.add('hidden');
     document.getElementById('admin-recommendations-card').classList.add('hidden');
+    document.getElementById('admin-report-card').classList.add('hidden');
     document.getElementById('create-route-card').classList.add('hidden');
     document.getElementById('routes-card').classList.add('hidden');
   }
@@ -712,6 +870,7 @@
         loadDashboardSummary();
         loadAlerts();
         loadRecommendations();
+        loadSustainabilityReport();
       }
     } catch (err) {
       msg.textContent = err.message;
