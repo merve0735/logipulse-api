@@ -1,12 +1,12 @@
 from app.models.alert import Alert, AlertSeverity, AlertType
 from app.repositories.route_repository import RouteRepository
-
-_HIGH_CARBON_THRESHOLD_KG = 50
-_DIESEL_HIGH_EMISSION_THRESHOLD_KG = 30
-
-
-def _route_name(route: dict) -> str:
-    return f"{route['origin']} → {route['destination']}"
+from app.services.route_rules import (
+    is_cancelled,
+    is_diesel_high_emission,
+    is_high_carbon,
+    is_negative_profit,
+    route_name,
+)
 
 
 class AlertService:
@@ -19,55 +19,52 @@ class AlertService:
 
         for route in routes:
             route_id = str(route["_id"])
-            route_name = _route_name(route)
+            name = route_name(route)
 
-            if route["estimated_profit"] < 0:
+            if is_negative_profit(route):
                 alerts.append(
                     Alert(
                         type=AlertType.NEGATIVE_PROFIT,
                         severity=AlertSeverity.HIGH,
                         message="Bu rota zarar ediyor.",
                         route_id=route_id,
-                        route_name=route_name,
+                        route_name=name,
                         value=route["estimated_profit"],
                     )
                 )
 
-            if route["estimated_carbon_kg"] > _HIGH_CARBON_THRESHOLD_KG:
+            if is_high_carbon(route):
                 alerts.append(
                     Alert(
                         type=AlertType.HIGH_CARBON,
                         severity=AlertSeverity.MEDIUM,
                         message="Bu rota yüksek karbon salımı üretiyor.",
                         route_id=route_id,
-                        route_name=route_name,
+                        route_name=name,
                         value=route["estimated_carbon_kg"],
                     )
                 )
 
-            if route["status"] == "cancelled":
+            if is_cancelled(route):
                 alerts.append(
                     Alert(
                         type=AlertType.CANCELLED_ROUTE,
                         severity=AlertSeverity.LOW,
                         message="Bu rota iptal edildi.",
                         route_id=route_id,
-                        route_name=route_name,
+                        route_name=name,
                         value=route["status"],
                     )
                 )
 
-            if (
-                route["vehicle_type"] == "diesel_van"
-                and route["estimated_carbon_kg"] > _DIESEL_HIGH_EMISSION_THRESHOLD_KG
-            ):
+            if is_diesel_high_emission(route):
                 alerts.append(
                     Alert(
                         type=AlertType.DIESEL_HIGH_EMISSION,
                         severity=AlertSeverity.MEDIUM,
                         message="Dizel araçla yapılan bu rota yüksek emisyon üretiyor.",
                         route_id=route_id,
-                        route_name=route_name,
+                        route_name=name,
                         value=route["estimated_carbon_kg"],
                     )
                 )
