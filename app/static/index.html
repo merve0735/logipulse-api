@@ -272,6 +272,12 @@
     <div id="alerts-list"></div>
   </div>
 
+  <div class="card hidden" id="admin-recommendations-card">
+    <h2>Öneriler</h2>
+    <div id="recommendations-empty-msg" class="msg hidden">Şu anda öneri bulunmuyor.</div>
+    <div id="recommendations-list"></div>
+  </div>
+
   <div class="card hidden" id="stats-card">
     <h2>Özet</h2>
     <div class="stat">
@@ -377,6 +383,13 @@
     diesel_high_emission: 'Yüksek Emisyonlu Dizel',
   };
 
+  const recommendationTypeLabels = {
+    profit_optimization: 'Kârlılık Optimizasyonu',
+    carbon_reduction: 'Karbon Azaltma',
+    fleet_transition: 'Filo Dönüşümü',
+    operation_quality: 'Operasyon Kalitesi',
+  };
+
   function switchTab(tab) {
     document.getElementById('tab-login').classList.toggle('active', tab === 'login');
     document.getElementById('tab-register').classList.toggle('active', tab === 'register');
@@ -457,13 +470,16 @@
       document.getElementById('create-route-card').classList.remove('hidden');
       document.getElementById('admin-summary-card').classList.remove('hidden');
       document.getElementById('admin-alerts-card').classList.remove('hidden');
+      document.getElementById('admin-recommendations-card').classList.remove('hidden');
       loadVehicleOptions();
       loadDashboardSummary();
       loadAlerts();
+      loadRecommendations();
     } else {
       document.getElementById('create-route-card').classList.add('hidden');
       document.getElementById('admin-summary-card').classList.add('hidden');
       document.getElementById('admin-alerts-card').classList.add('hidden');
+      document.getElementById('admin-recommendations-card').classList.add('hidden');
     }
 
     loadRoutes();
@@ -490,6 +506,35 @@
         </div>
         <div>${a.message}</div>
         <div style="color: var(--muted); margin-top: 2px;">${a.route_name} — Değer: ${a.value}</div>
+      `;
+      list.appendChild(card);
+    });
+  }
+
+  async function loadRecommendations() {
+    const res = await fetch(`${API_BASE}/api/v1/recommendations`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return;
+    const recommendations = await res.json();
+
+    document.getElementById('recommendations-empty-msg').classList.toggle('hidden', recommendations.length > 0);
+
+    const list = document.getElementById('recommendations-list');
+    list.innerHTML = '';
+    recommendations.forEach((r) => {
+      const card = document.createElement('div');
+      card.className = `alert-card ${r.priority}`;
+      card.innerHTML = `
+        <div class="alert-top">
+          <span class="alert-type">${recommendationTypeLabels[r.type] || r.type}</span>
+          <span class="severity-badge ${r.priority}">${severityLabels[r.priority] || r.priority}</span>
+        </div>
+        <div><strong>${r.title}</strong></div>
+        <div>${r.message}</div>
+        <div style="color: var(--muted); margin-top: 2px;">
+          Etkilenen rota: ${r.affected_route_count} — Potansiyel etki: ${r.potential_impact}
+        </div>
       `;
       list.appendChild(card);
     });
@@ -562,6 +607,7 @@
     document.getElementById('stats-card').classList.add('hidden');
     document.getElementById('admin-summary-card').classList.add('hidden');
     document.getElementById('admin-alerts-card').classList.add('hidden');
+    document.getElementById('admin-recommendations-card').classList.add('hidden');
     document.getElementById('create-route-card').classList.add('hidden');
     document.getElementById('routes-card').classList.add('hidden');
   }
@@ -665,6 +711,7 @@
       if (currentUser.role === 'admin') {
         loadDashboardSummary();
         loadAlerts();
+        loadRecommendations();
       }
     } catch (err) {
       msg.textContent = err.message;
