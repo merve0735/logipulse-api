@@ -6,6 +6,7 @@ from fastapi import HTTPException, status
 from app.models.route import RouteCreate, RouteStatus
 from app.repositories.route_repository import RouteRepository
 from app.repositories.vehicle_repository import VehicleRepository
+from app.services.stop_builder import build_stop_docs
 
 # Her durumdan hangi durumlara geçilebileceğini tutan merkezi tablo.
 # Yeni bir geçiş kuralı eklemek/değiştirmek istendiğinde sadece burası güncellenir.
@@ -52,6 +53,7 @@ class RouteService:
             "estimated_profit": estimated_profit,
             "status": RouteStatus.PENDING.value,
             "assigned_driver_id": route_in.assigned_driver_id,
+            "stops": build_stop_docs(route_in.stops),
             "created_by": created_by,
             "created_at": datetime.now(timezone.utc),
         }
@@ -60,27 +62,27 @@ class RouteService:
         return route_doc
 
     async def assign_driver(self, route_id: str, driver_id: str) -> dict:
-        route = await self._get_route_or_404(route_id)
-        route = await self._transition_status(route_id, route, RouteStatus.ASSIGNED)
+        route = await self.get_route_or_404(route_id)
+        route = await self.transition_status(route_id, route, RouteStatus.ASSIGNED)
         await self.route_repo.assign_driver(route_id, driver_id)
         route["assigned_driver_id"] = driver_id
         return route
 
     async def start_route(self, route_id: str, driver_id: str) -> dict:
-        route = await self._get_route_or_404(route_id)
-        self._ensure_own_route(route, driver_id)
-        return await self._transition_status(route_id, route, RouteStatus.IN_PROGRESS)
+        route = await self.get_route_or_404(route_id)
+        self.ensure_own_route(route, driver_id)
+        return await self.transition_status(route_id, route, RouteStatus.IN_PROGRESS)
 
     async def deliver_route(self, route_id: str, driver_id: str) -> dict:
-        route = await self._get_route_or_404(route_id)
-        self._ensure_own_route(route, driver_id)
-        return await self._transition_status(route_id, route, RouteStatus.DELIVERED)
+        route = await self.get_route_or_404(route_id)
+        self.ensure_own_route(route, driver_id)
+        return await self.transition_status(route_id, route, RouteStatus.DELIVERED)
 
     async def cancel_route(self, route_id: str) -> dict:
-        route = await self._get_route_or_404(route_id)
-        return await self._transition_status(route_id, route, RouteStatus.CANCELLED)
+        route = await self.get_route_or_404(route_id)
+        return await self.transition_status(route_id, route, RouteStatus.CANCELLED)
 
-    async def _get_route_or_404(self, route_id: str) -> dict:
+    async def get_route_or_404(self, route_id: str) -> dict:
         try:
             route = await self.route_repo.get_by_id(route_id)
         except InvalidId:
@@ -89,11 +91,11 @@ class RouteService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rota bulunamadı")
         return route
 
-    def _ensure_own_route(self, route: dict, driver_id: str) -> None:
+    def ensure_own_route(self, route: dict, driver_id: str) -> None:
         if route.get("assigned_driver_id") != driver_id:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Bu rota size atanmamış")
 
-    async def _transition_status(self, route_id: str, route: dict, new_status: RouteStatus) -> dict:
+    async def transition_status(self, route_id: str, route: dict, new_status: RouteStatus) -> dict:
         current_status = RouteStatus(route["status"])
         if new_status not in _ALLOWED_TRANSITIONS[current_status]:
             raise HTTPException(

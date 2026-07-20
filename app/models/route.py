@@ -2,8 +2,9 @@ from datetime import datetime
 from enum import Enum
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
+from app.models.stop import StopCreate, StopOut
 from app.models.vehicle import FleetVehicleType
 
 
@@ -31,6 +32,15 @@ class RouteCreate(BaseModel):
     vehicle_id: str
     expected_revenue: float = Field(ge=0)
     assigned_driver_id: Optional[str] = None
+    stops: list[StopCreate] = Field(default_factory=list)
+
+    @field_validator("stops")
+    @classmethod
+    def validate_unique_sequence_numbers(cls, stops: list[StopCreate]) -> list[StopCreate]:
+        sequence_numbers = [s.sequence_number for s in stops]
+        if len(sequence_numbers) != len(set(sequence_numbers)):
+            raise ValueError("Aynı rotada iki durak aynı sequence_number değerine sahip olamaz")
+        return stops
 
 
 class AssignDriverRequest(BaseModel):
@@ -51,5 +61,6 @@ class RouteOut(BaseModel):
     estimated_profit: float
     status: RouteStatus
     assigned_driver_id: Optional[str] = None
+    stops: list[StopOut] = Field(default_factory=list)
     created_by: str
     created_at: datetime

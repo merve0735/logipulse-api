@@ -6,11 +6,13 @@ from app.api.v1.auth import get_user_repository
 from app.api.v1.vehicles import get_vehicle_repository
 from app.core.deps import CurrentUser, get_current_user, require_role
 from app.models.route import AssignDriverRequest, RouteCreate, RouteOut
+from app.models.stop import StopFailRequest, StopOut
 from app.models.user import UserRole
 from app.repositories.route_repository import RouteRepository
 from app.repositories.user_repository import UserRepository
 from app.repositories.vehicle_repository import VehicleRepository
 from app.services.route_service import RouteService
+from app.services.stop_service import StopService
 
 router = APIRouter(prefix="/routes", tags=["routes"])
 
@@ -24,6 +26,32 @@ def get_route_service(
     vehicle_repo: VehicleRepository = Depends(get_vehicle_repository),
 ) -> RouteService:
     return RouteService(route_repo, vehicle_repo)
+
+
+def get_stop_service(
+    route_repo: RouteRepository = Depends(get_route_repository),
+    route_service: RouteService = Depends(get_route_service),
+) -> StopService:
+    return StopService(route_repo, route_service)
+
+
+def _to_stop_out(doc: dict) -> StopOut:
+    return StopOut(
+        id=doc["id"],
+        sequence_number=doc["sequence_number"],
+        customer_name=doc["customer_name"],
+        customer_phone=doc.get("customer_phone"),
+        address=doc["address"],
+        latitude=doc.get("latitude"),
+        longitude=doc.get("longitude"),
+        package_weight_kg=doc.get("package_weight_kg"),
+        delivery_note=doc.get("delivery_note"),
+        status=doc["status"],
+        failure_reason=doc.get("failure_reason"),
+        delivered_at=doc.get("delivered_at"),
+        created_at=doc["created_at"],
+        updated_at=doc["updated_at"],
+    )
 
 
 def _to_route_out(doc: dict) -> RouteOut:
@@ -41,6 +69,7 @@ def _to_route_out(doc: dict) -> RouteOut:
         estimated_profit=doc["estimated_profit"],
         status=doc["status"],
         assigned_driver_id=doc.get("assigned_driver_id"),
+        stops=[_to_stop_out(s) for s in doc.get("stops", [])],
         created_by=doc["created_by"],
         created_at=doc["created_at"],
     )
@@ -124,4 +153,59 @@ async def cancel_route(
     service: RouteService = Depends(get_route_service),
 ):
     route_doc = await service.cancel_route(route_id)
+    return _to_route_out(route_doc)
+
+
+@router.get("/{route_id}/stops", response_model=list[StopOut])
+async def list_route_stops(
+    route_id: str,
+    current_user: CurrentUser = Depends(get_current_user),
+    service: StopService = Depends(get_stop_service),
+):
+    stops = await service.list_stops(route_id, current_user.id, current_user.role == UserRole.ADMIN)
+    return [_to_stop_out(s) for s in stops]
+
+
+@router.patch("/{route_id}/stops/{stop_id}/deliver", response_model=RouteOut)
+async def deliver_stop(
+    route_id: str,
+    stop_id: str,
+    current_user: CurrentUser = Depends(require_role(UserRole.DRIVER)),
+    service: StopService = Depends(get_stop_service),
+):
+    route_doc = await service.deliver_stop(route_id, stop_id, current_user.id)
+    return _to_route_out(route_doc)
+
+
+@router.patch("/{route_id}/stops/{stop_id}/fail", response_model=RouteOut)
+async def fail_stop(
+    route_id: str,
+    stop_id: str,
+    fail_in: StopFailRequest,
+    current_user: CurrentUser = Depends(require_role(UserRole.DRIVER)),
+    service: StopService = Depends(get_stop_service),
+):
+    route_doc = await service.fail_stop(route_id, stop_id, current_user.id, fail_in.failure_reason)
+    return _to_route_out(route_doc)
+
+
+@router.patch("/{route_id}/stops/{stop_id}/skip", response_model=RouteOut)
+async def skip_stop(
+    route_id: str,
+    stop_id: str,
+    current_user: CurrentUser = Depends(require_role(UserRole.DRIVER)),
+    service: StopService = Depends(get_stop_service),
+):
+    route_doc = await service.skip_stop(route_id, stop_id, current_user.id)
+    return _to_route_out(route_doc)
+
+
+@router.patch("/{route_id}/stops/{stop_id}/schedule-retry", response_model=RouteOut)
+async def schedule_retry_stop(
+    route_id: str,
+    stop_id: str,
+    current_user: CurrentUser = Depends(require_role(UserRole.DRIVER)),
+    service: StopService = Depends(get_stop_service),
+):
+    route_doc = await service.schedule_retry_stop(route_id, stop_id, current_user.id)
     return _to_route_out(route_doc)

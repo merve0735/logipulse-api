@@ -432,6 +432,11 @@
       <select id="route-vehicle-id"></select>
       <label>Atanan Sürücü ID (opsiyonel)</label>
       <input type="text" id="route-driver-id" placeholder="Sürücünün kullanıcı ID'si">
+
+      <label style="margin-top: 16px;">Duraklar (opsiyonel)</label>
+      <div id="stops-container"></div>
+      <button type="button" class="secondary" onclick="addStopRow()">+ Durak Ekle</button>
+
       <button onclick="createRoute()">Rota Oluştur</button>
     </div>
     <div id="route-msg" class="msg"></div>
@@ -450,6 +455,7 @@
           <th>Durum</th>
           <th>Tahmini Karbon</th>
           <th>Atanan Sürücü</th>
+          <th>Duraklar</th>
           <th>İşlem</th>
         </tr>
       </thead>
@@ -476,6 +482,14 @@
     in_progress: 'Yolda',
     delivered: 'Teslim Edildi',
     cancelled: 'İptal Edildi',
+  };
+
+  const stopStatusLabels = {
+    pending: 'Bekliyor',
+    delivered: 'Teslim Edildi',
+    failed: 'Başarısız',
+    skipped: 'Atlandı',
+    retry_scheduled: 'Tekrar Denenecek',
   };
 
   const severityLabels = {
@@ -787,6 +801,69 @@
     document.getElementById('routes-card').classList.add('hidden');
   }
 
+  function addStopRow() {
+    const container = document.getElementById('stops-container');
+    const row = document.createElement('div');
+    row.className = 'stop-row';
+    row.style.cssText = 'border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin: 8px 0;';
+    row.innerHTML = `
+      <div class="row">
+        <div>
+          <label>Sıra No</label>
+          <input type="number" class="stop-sequence" placeholder="1">
+        </div>
+        <div>
+          <label>Müşteri Adı</label>
+          <input type="text" class="stop-customer" placeholder="Ali Veli">
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Adres</label>
+          <input type="text" class="stop-address" placeholder="Adres">
+        </div>
+        <div>
+          <label>Paket Ağırlığı (kg)</label>
+          <input type="number" class="stop-weight" placeholder="2.5">
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Enlem (latitude)</label>
+          <input type="number" step="any" class="stop-lat" placeholder="41.01">
+        </div>
+        <div>
+          <label>Boylam (longitude)</label>
+          <input type="number" step="any" class="stop-lng" placeholder="28.97">
+        </div>
+      </div>
+      <label>Teslimat Notu</label>
+      <input type="text" class="stop-note" placeholder="Kapı kodu vb.">
+      <button type="button" class="secondary" onclick="this.parentElement.remove()" style="margin-top: 8px;">Bu Durağı Kaldır</button>
+    `;
+    container.appendChild(row);
+  }
+
+  function collectStopsFromForm() {
+    const rows = document.querySelectorAll('#stops-container .stop-row');
+    return Array.from(rows).map((row) => {
+      const stop = {
+        sequence_number: parseInt(row.querySelector('.stop-sequence').value, 10),
+        customer_name: row.querySelector('.stop-customer').value,
+        address: row.querySelector('.stop-address').value,
+      };
+      const weight = row.querySelector('.stop-weight').value;
+      if (weight) stop.package_weight_kg = parseFloat(weight);
+      const lat = row.querySelector('.stop-lat').value;
+      if (lat) stop.latitude = parseFloat(lat);
+      const lng = row.querySelector('.stop-lng').value;
+      if (lng) stop.longitude = parseFloat(lng);
+      const note = row.querySelector('.stop-note').value;
+      if (note) stop.delivery_note = note;
+      return stop;
+    });
+  }
+
   async function createRoute() {
     const msg = document.getElementById('route-msg');
     msg.textContent = '';
@@ -800,6 +877,8 @@
     };
     const driverId = document.getElementById('route-driver-id').value.trim();
     if (driverId) body.assigned_driver_id = driverId;
+    const stops = collectStopsFromForm();
+    if (stops.length > 0) body.stops = stops;
 
     try {
       const res = await fetch(`${API_BASE}/api/v1/routes`, {
@@ -817,6 +896,7 @@
         `Maliyet: ${data.estimated_cost} TL | Kâr: ${data.estimated_profit} TL | ` +
         `Karbon: ${data.estimated_carbon_kg} kg`;
       msg.className = 'msg success';
+      document.getElementById('stops-container').innerHTML = '';
       loadRoutes();
     } catch (err) {
       msg.textContent = err.message;
@@ -853,6 +933,38 @@
         }
       }
 
+      const detailRowId = `stop-detail-${r.id}`;
+
+      let stopsHtml;
+      if (r.stops.length === 0) {
+        stopsHtml = '<div style="font-size: 12px; color: var(--muted);">Durak eklenmemiş.</div>';
+      } else {
+        stopsHtml = r.stops
+          .map((s) => {
+            let stopActions = '';
+            if (currentUser.role === 'driver') {
+              stopActions = `
+                <button onclick="deliverStop('${r.id}','${s.id}')">Teslim Edildi</button>
+                <button class="secondary" onclick="failStop('${r.id}','${s.id}')">Başarısız</button>
+                <button class="secondary" onclick="skipStop('${r.id}','${s.id}')">Atla</button>
+                <button class="secondary" onclick="retryStop('${r.id}','${s.id}')">Tekrar Dene</button>
+              `;
+            }
+            const failureLine = s.failure_reason
+              ? `<div style="font-size: 12px; color: var(--danger);">Sebep: ${s.failure_reason}</div>`
+              : '';
+            return `
+              <div style="border-bottom: 1px solid var(--border); padding: 6px 0;">
+                <strong>#${s.sequence_number} ${s.customer_name}</strong> — ${s.address}
+                <span class="badge">${stopStatusLabels[s.status] || s.status}</span>
+                ${failureLine}
+                <div style="margin-top: 4px;">${stopActions}</div>
+              </div>
+            `;
+          })
+          .join('');
+      }
+
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${r.origin} → ${r.destination}</td>
@@ -861,9 +973,16 @@
         <td>${statusLabels[r.status] || r.status}</td>
         <td>${r.estimated_carbon_kg} kg</td>
         <td>${r.assigned_driver_id || '—'}</td>
+        <td><button class="secondary" onclick="toggleStopDetails('${detailRowId}')">${r.stops.length} durak</button></td>
         <td>${actions}</td>
       `;
       tbody.appendChild(tr);
+
+      const detailTr = document.createElement('tr');
+      detailTr.id = detailRowId;
+      detailTr.className = 'hidden';
+      detailTr.innerHTML = `<td colspan="8">${stopsHtml}</td>`;
+      tbody.appendChild(detailTr);
     });
 
     document.getElementById('stat-route-count').textContent = routes.length;
@@ -905,6 +1024,57 @@
 
   function cancelRoute(routeId) {
     patchRouteStatus(`${routeId}/cancel`, 'Rota iptal edildi.');
+  }
+
+  function toggleStopDetails(rowId) {
+    document.getElementById(rowId).classList.toggle('hidden');
+  }
+
+  async function patchStopStatus(routeId, stopId, action, body) {
+    const msg = document.getElementById('routes-action-msg');
+    const options = {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}` },
+    };
+    if (body) {
+      options.headers['Content-Type'] = 'application/json';
+      options.body = JSON.stringify(body);
+    }
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/routes/${routeId}/stops/${stopId}/${action}`, options);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'İşlem başarısız');
+      msg.textContent = 'Durak güncellendi.';
+      msg.className = 'msg success';
+      loadRoutes();
+      if (currentUser.role === 'admin') {
+        loadDashboardSummary();
+        loadAlerts();
+        loadRecommendations();
+        loadSustainabilityReport();
+      }
+    } catch (err) {
+      msg.textContent = err.message;
+      msg.className = 'msg error';
+    }
+  }
+
+  function deliverStop(routeId, stopId) {
+    patchStopStatus(routeId, stopId, 'deliver');
+  }
+
+  function failStop(routeId, stopId) {
+    const reason = prompt('Başarısızlık nedeni:');
+    if (!reason) return;
+    patchStopStatus(routeId, stopId, 'fail', { failure_reason: reason });
+  }
+
+  function skipStop(routeId, stopId) {
+    patchStopStatus(routeId, stopId, 'skip');
+  }
+
+  function retryStop(routeId, stopId) {
+    patchStopStatus(routeId, stopId, 'schedule-retry');
   }
 
   if (token) {

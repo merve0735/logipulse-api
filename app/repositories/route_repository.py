@@ -25,3 +25,11 @@ class RouteRepository(BaseRepository):
 
     async def update_status(self, route_id: str, status: str) -> int:
         return await self.update_one({"_id": ObjectId(route_id)}, {"status": status})
+
+    async def update_stop(self, route_id: str, stop_id: str, fields: dict) -> int:
+        positional_update = {f"stops.$.{key}": value for key, value in fields.items()}
+        result = await self.collection.update_one(
+            {"_id": ObjectId(route_id), "stops.id": stop_id},
+            {"$set": positional_update},
+        )
+        return result.modified_count
