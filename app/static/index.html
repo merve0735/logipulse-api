@@ -383,6 +383,7 @@
     </div>
 
     <button class="secondary" onclick="loadSustainabilityReport()" style="margin-top: 16px;">Yenile</button>
+    <button onclick="downloadSustainabilityReportPdf()" style="margin-top: 16px;">PDF İndir</button>
   </div>
 
   <div class="card hidden" id="stats-card">
@@ -695,6 +696,22 @@
     document.getElementById('report-rec-high').textContent = rec.high_priority_count;
     document.getElementById('report-rec-medium').textContent = rec.medium_priority_count;
     document.getElementById('report-rec-low').textContent = rec.low_priority_count;
+  }
+
+  async function downloadSustainabilityReportPdf() {
+    const res = await fetch(`${API_BASE}/api/v1/reports/sustainability/pdf`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return;
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'logipulse-sustainability-report.pdf';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   }
 
   async function loadDashboardSummary() {
