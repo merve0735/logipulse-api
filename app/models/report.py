@@ -39,6 +39,16 @@ class RecommendationSummary(BaseModel):
     recommendations: list[Recommendation]
 
 
+class OperationalQualitySummary(BaseModel):
+    total_stops: int
+    delivered_stop_count: int
+    failed_stop_count: int
+    skipped_stop_count: int
+    retry_scheduled_stop_count: int
+    pending_stop_count: int
+    delivery_success_rate: float
+
+
 class SustainabilityReport(BaseModel):
     report_title: str
     generated_at: datetime
@@ -47,4 +57,5 @@ class SustainabilityReport(BaseModel):
     carbon_summary: CarbonSummary
     risk_summary: RiskSummary
     recommendation_summary: RecommendationSummary
+    operational_quality_summary: OperationalQualitySummary
     business_comment: str

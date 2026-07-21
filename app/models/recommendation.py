@@ -8,6 +8,8 @@ class RecommendationType(str, Enum):
     CARBON_REDUCTION = "carbon_reduction"
     FLEET_TRANSITION = "fleet_transition"
     OPERATION_QUALITY = "operation_quality"
+    DELIVERY_QUALITY = "delivery_quality"
+    RETRY_OPTIMIZATION = "retry_optimization"
 
 
 class RecommendationPriority(str, Enum):

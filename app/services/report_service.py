@@ -6,6 +6,7 @@ from app.models.recommendation import RecommendationPriority
 from app.models.report import (
     CarbonSummary,
     FinancialSummary,
+    OperationalQualitySummary,
     RecommendationSummary,
     RiskSummary,
     SustainabilityReport,
@@ -63,6 +64,16 @@ class ReportService:
             recommendations=recommendations,
         )
 
+        operational_quality_summary = OperationalQualitySummary(
+            total_stops=summary.total_stops,
+            delivered_stop_count=summary.delivered_stop_count,
+            failed_stop_count=summary.failed_stop_count,
+            skipped_stop_count=summary.skipped_stop_count,
+            retry_scheduled_stop_count=summary.retry_scheduled_stop_count,
+            pending_stop_count=summary.pending_stop_count,
+            delivery_success_rate=summary.delivery_success_rate,
+        )
+
         return SustainabilityReport(
             report_title="LogiPulse Sustainability & Profitability Report",
             generated_at=datetime.now(timezone.utc),
@@ -71,6 +82,7 @@ class ReportService:
             carbon_summary=carbon_summary,
             risk_summary=risk_summary,
             recommendation_summary=recommendation_summary,
+            operational_quality_summary=operational_quality_summary,
             business_comment=self._build_business_comment(summary, risk_summary),
         )
 
@@ -90,6 +102,17 @@ class ReportService:
 
         if risk_summary.total_alert_count == 0:
             comments.append("Mevcut operasyonlarda kritik risk görünmüyor.")
+
+        if summary.total_stops > 0 and summary.delivery_success_rate < 80:
+            comments.append(
+                "Teslimat başarı oranı düşük görünüyor. Başarısız ve tekrar denenecek teslimatlar "
+                "operasyonel kalite açısından incelenmeli."
+            )
+
+        if summary.failed_stop_count > 0:
+            comments.append(
+                "Başarısız teslimat nedenleri düzenli takip edilerek müşteri memnuniyeti artırılabilir."
+            )
 
         if not comments:
             return "Operasyonlar genel olarak dengeli görünüyor."

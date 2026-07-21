@@ -77,6 +77,17 @@ def build_sustainability_report_pdf(report: SustainabilityReport) -> bytes:
         elements.append(Paragraph("No active recommendations.", styles["Normal"]))
     elements.append(Spacer(1, 14))
 
+    quality = report.operational_quality_summary
+    elements.append(Paragraph("Operational Quality Summary", styles["Heading2"]))
+    elements.append(Paragraph(f"Total Stops: {quality.total_stops}", styles["Normal"]))
+    elements.append(Paragraph(f"Delivered: {quality.delivered_stop_count}", styles["Normal"]))
+    elements.append(Paragraph(f"Failed: {quality.failed_stop_count}", styles["Normal"]))
+    elements.append(Paragraph(f"Skipped: {quality.skipped_stop_count}", styles["Normal"]))
+    elements.append(Paragraph(f"Retry Scheduled: {quality.retry_scheduled_stop_count}", styles["Normal"]))
+    elements.append(Paragraph(f"Pending: {quality.pending_stop_count}", styles["Normal"]))
+    elements.append(Paragraph(f"Delivery Success Rate: {quality.delivery_success_rate}%", styles["Normal"]))
+    elements.append(Spacer(1, 14))
+
     elements.append(Paragraph("Business Comment", styles["Heading2"]))
     elements.append(Paragraph(report.business_comment, styles["Normal"]))
 

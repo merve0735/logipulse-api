@@ -1,6 +1,8 @@
 from app.models.recommendation import Recommendation, RecommendationPriority, RecommendationType
+from app.models.stop import StopStatus
 from app.repositories.route_repository import RouteRepository
 from app.services.route_rules import is_cancelled, is_diesel, is_electric, is_high_carbon, is_negative_profit
+from app.services.stop_metrics import flatten_stops
 
 
 class RecommendationService:
@@ -73,6 +75,39 @@ class RecommendationService:
                     ),
                     affected_route_count=cancelled_count,
                     potential_impact="Operasyon kalitesi artar",
+                )
+            )
+
+        stops = flatten_stops(routes)
+
+        failed_stop_count = sum(1 for s in stops if s["status"] == StopStatus.FAILED.value)
+        if failed_stop_count > 0:
+            recommendations.append(
+                Recommendation(
+                    type=RecommendationType.DELIVERY_QUALITY,
+                    priority=RecommendationPriority.MEDIUM,
+                    title="Başarısız Teslimat Nedenlerini İncele",
+                    message=(
+                        "Başarısız teslimatlar müşteri memnuniyetini ve operasyon verimliliğini düşürebilir. "
+                        "Failure reason kayıtları düzenli analiz edilmelidir."
+                    ),
+                    affected_route_count=failed_stop_count,
+                    potential_impact="Teslimat başarı oranı artar",
+                )
+            )
+
+        retry_stop_count = sum(1 for s in stops if s["status"] == StopStatus.RETRY_SCHEDULED.value)
+        if retry_stop_count > 0:
+            recommendations.append(
+                Recommendation(
+                    type=RecommendationType.RETRY_OPTIMIZATION,
+                    priority=RecommendationPriority.LOW,
+                    title="Tekrar Denenecek Teslimatları Planla",
+                    message=(
+                        "Tekrar denenecek teslimatlar ayrı bir rota planına alınarak zaman kaybı azaltılabilir."
+                    ),
+                    affected_route_count=retry_stop_count,
+                    potential_impact="Operasyon planlaması iyileşir",
                 )
             )
 

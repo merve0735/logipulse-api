@@ -1,5 +1,6 @@
 from app.models.dashboard import DashboardSummary, RouteSummary
 from app.repositories.route_repository import RouteRepository
+from app.services.stop_metrics import compute_stop_metrics, flatten_stops
 
 
 def _to_route_summary(route: dict) -> RouteSummary:
@@ -33,6 +34,13 @@ class DashboardService:
                 electric_route_count=0,
                 diesel_route_count=0,
                 motorcycle_route_count=0,
+                total_stops=0,
+                delivered_stop_count=0,
+                failed_stop_count=0,
+                skipped_stop_count=0,
+                retry_scheduled_stop_count=0,
+                pending_stop_count=0,
+                delivery_success_rate=0,
             )
 
         total_distance_km = sum(r["distance_km"] for r in routes)
@@ -43,6 +51,7 @@ class DashboardService:
 
         most_profitable = max(routes, key=lambda r: r["estimated_profit"])
         least_profitable = min(routes, key=lambda r: r["estimated_profit"])
+        stop_metrics = compute_stop_metrics(flatten_stops(routes))
 
         return DashboardSummary(
             total_routes=total_routes,
@@ -58,4 +67,5 @@ class DashboardService:
             electric_route_count=sum(1 for r in routes if r["vehicle_type"] == "electric_van"),
             diesel_route_count=sum(1 for r in routes if r["vehicle_type"] == "diesel_van"),
             motorcycle_route_count=sum(1 for r in routes if r["vehicle_type"] == "motorcycle"),
+            **stop_metrics,
         )

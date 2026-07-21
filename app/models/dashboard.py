@@ -25,3 +25,10 @@ class DashboardSummary(BaseModel):
     electric_route_count: int
     diesel_route_count: int
     motorcycle_route_count: int
+    total_stops: int
+    delivered_stop_count: int
+    failed_stop_count: int
+    skipped_stop_count: int
+    retry_scheduled_stop_count: int
+    pending_stop_count: int
+    delivery_success_rate: float

@@ -1,4 +1,5 @@
 from app.models.alert import Alert, AlertSeverity, AlertType
+from app.models.stop import StopStatus
 from app.repositories.route_repository import RouteRepository
 from app.services.route_rules import (
     is_cancelled,
@@ -7,6 +8,7 @@ from app.services.route_rules import (
     is_negative_profit,
     route_name,
 )
+from app.services.stop_metrics import flatten_stops
 
 
 class AlertService:
@@ -66,6 +68,47 @@ class AlertService:
                         route_id=route_id,
                         route_name=name,
                         value=route["estimated_carbon_kg"],
+                    )
+                )
+
+        for stop in flatten_stops(routes):
+            if stop["status"] == StopStatus.FAILED.value:
+                alerts.append(
+                    Alert(
+                        type=AlertType.FAILED_DELIVERY,
+                        severity=AlertSeverity.MEDIUM,
+                        message="Başarısız teslimat kaydı var.",
+                        route_id=stop["route_id"],
+                        route_name=stop["route_name"],
+                        stop_id=stop["id"],
+                        customer_name=stop["customer_name"],
+                        value=stop.get("failure_reason") or "",
+                    )
+                )
+            elif stop["status"] == StopStatus.SKIPPED.value:
+                alerts.append(
+                    Alert(
+                        type=AlertType.SKIPPED_STOP,
+                        severity=AlertSeverity.LOW,
+                        message="Atlanan teslimat durağı var.",
+                        route_id=stop["route_id"],
+                        route_name=stop["route_name"],
+                        stop_id=stop["id"],
+                        customer_name=stop["customer_name"],
+                        value=stop["status"],
+                    )
+                )
+            elif stop["status"] == StopStatus.RETRY_SCHEDULED.value:
+                alerts.append(
+                    Alert(
+                        type=AlertType.RETRY_SCHEDULED,
+                        severity=AlertSeverity.LOW,
+                        message="Tekrar denenecek teslimat var.",
+                        route_id=stop["route_id"],
+                        route_name=stop["route_name"],
+                        stop_id=stop["id"],
+                        customer_name=stop["customer_name"],
+                        value=stop["status"],
                     )
                 )
 
