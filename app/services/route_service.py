@@ -7,6 +7,7 @@ from app.models.route import RouteCreate, RouteStatus
 from app.repositories.route_repository import RouteRepository
 from app.repositories.vehicle_repository import VehicleRepository
 from app.services.stop_builder import build_stop_docs
+from app.services.vehicle_economics import calculate_vehicle_economics
 
 # Her durumdan hangi durumlara geçilebileceğini tutan merkezi tablo.
 # Yeni bir geçiş kuralı eklemek/değiştirmek istendiğinde sadece burası güncellenir.
@@ -36,9 +37,7 @@ class RouteService:
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Bu araç aktif değil, rota oluşturulamaz"
             )
 
-        estimated_cost = round(route_in.distance_km * vehicle["average_cost_per_km"], 2)
-        estimated_carbon_kg = round(route_in.distance_km * vehicle["average_carbon_per_km"], 2)
-        estimated_profit = round(route_in.expected_revenue - estimated_cost, 2)
+        economics = calculate_vehicle_economics(vehicle, route_in.distance_km, route_in.expected_revenue)
 
         route_doc = {
             "origin": route_in.origin,
@@ -48,9 +47,9 @@ class RouteService:
             "vehicle_plate_number": vehicle["plate_number"],
             "vehicle_type": vehicle["vehicle_type"],
             "expected_revenue": route_in.expected_revenue,
-            "estimated_carbon_kg": estimated_carbon_kg,
-            "estimated_cost": estimated_cost,
-            "estimated_profit": estimated_profit,
+            "estimated_carbon_kg": economics["estimated_carbon_kg"],
+            "estimated_cost": economics["estimated_cost"],
+            "estimated_profit": economics["estimated_profit"],
             "status": RouteStatus.PENDING.value,
             "assigned_driver_id": route_in.assigned_driver_id,
             "stops": build_stop_docs(route_in.stops),

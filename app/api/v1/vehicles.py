@@ -2,8 +2,14 @@ from fastapi import APIRouter, Depends, status
 
 from app.core.deps import CurrentUser, require_role
 from app.models.user import UserRole
-from app.models.vehicle import VehicleCreate, VehicleOut
+from app.models.vehicle import (
+    VehicleCreate,
+    VehicleOut,
+    VehicleRecommendationRequest,
+    VehicleRecommendationResponse,
+)
 from app.repositories.vehicle_repository import VehicleRepository
+from app.services.vehicle_recommendation_service import VehicleRecommendationService
 from app.services.vehicle_service import VehicleService
 
 router = APIRouter(prefix="/vehicles", tags=["vehicles"])
@@ -15,6 +21,12 @@ def get_vehicle_repository() -> VehicleRepository:
 
 def get_vehicle_service(repo: VehicleRepository = Depends(get_vehicle_repository)) -> VehicleService:
     return VehicleService(repo)
+
+
+def get_vehicle_recommendation_service(
+    repo: VehicleRepository = Depends(get_vehicle_repository),
+) -> VehicleRecommendationService:
+    return VehicleRecommendationService(repo)
 
 
 def _to_vehicle_out(doc: dict) -> VehicleOut:
@@ -47,3 +59,12 @@ async def list_vehicles(
 ):
     vehicles = await service.list_vehicles()
     return [_to_vehicle_out(v) for v in vehicles]
+
+
+@router.post("/recommend-best", response_model=VehicleRecommendationResponse)
+async def recommend_best_vehicle(
+    request_in: VehicleRecommendationRequest,
+    current_user: CurrentUser = Depends(require_role(UserRole.ADMIN)),
+    service: VehicleRecommendationService = Depends(get_vehicle_recommendation_service),
+):
+    return await service.recommend_best(request_in)

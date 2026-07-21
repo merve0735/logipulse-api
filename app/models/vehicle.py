@@ -28,3 +28,26 @@ class VehicleOut(BaseModel):
     average_carbon_per_km: float
     is_active: bool
     created_at: datetime
+
+
+class VehicleRecommendationRequest(BaseModel):
+    distance_km: float = Field(gt=0)
+    expected_revenue: float = Field(ge=0)
+    package_weight_kg: float = Field(ge=0)
+
+
+class VehicleRecommendationResult(BaseModel):
+    id: str
+    plate_number: str
+    vehicle_type: FleetVehicleType
+    estimated_cost: float
+    estimated_carbon_kg: float
+    estimated_profit: float
+    capacity_suitable: bool
+    score: float
+    reason: str
+
+
+class VehicleRecommendationResponse(BaseModel):
+    recommended_vehicle: VehicleRecommendationResult
+    alternatives: list[VehicleRecommendationResult]
