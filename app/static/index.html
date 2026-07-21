@@ -263,6 +263,39 @@
           <div class="label">Motosiklet Rota</div>
         </div>
       </div>
+
+      <h3 style="font-size: 14px; margin: 16px 0 8px;">Teslimat Kalitesi</h3>
+      <div id="quality-empty-msg" class="msg hidden">Henüz durak verisi yok.</div>
+      <div id="quality-content" class="stat">
+        <div class="box">
+          <div class="value" id="quality-total-stops">0</div>
+          <div class="label">Toplam Durak</div>
+        </div>
+        <div class="box">
+          <div class="value" id="quality-delivered">0</div>
+          <div class="label">Teslim Edilen</div>
+        </div>
+        <div class="box">
+          <div class="value" id="quality-failed">0</div>
+          <div class="label">Başarısız</div>
+        </div>
+        <div class="box">
+          <div class="value" id="quality-skipped">0</div>
+          <div class="label">Atlanan</div>
+        </div>
+        <div class="box">
+          <div class="value" id="quality-retry">0</div>
+          <div class="label">Tekrar Denenecek</div>
+        </div>
+        <div class="box">
+          <div class="value" id="quality-pending">0</div>
+          <div class="label">Bekleyen</div>
+        </div>
+        <div class="box">
+          <div class="value" id="quality-success-rate">0</div>
+          <div class="label">Teslimat Başarı Oranı</div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -379,6 +412,38 @@
       <div class="box">
         <div class="value" id="report-rec-low">0</div>
         <div class="label">Düşük Öncelik</div>
+      </div>
+    </div>
+
+    <h3 style="font-size: 14px; margin: 16px 0 8px;">Operasyon Kalitesi</h3>
+    <div class="stat">
+      <div class="box">
+        <div class="value" id="report-quality-total">0</div>
+        <div class="label">Toplam Durak</div>
+      </div>
+      <div class="box">
+        <div class="value" id="report-quality-delivered">0</div>
+        <div class="label">Teslim Edilen</div>
+      </div>
+      <div class="box">
+        <div class="value" id="report-quality-failed">0</div>
+        <div class="label">Başarısız</div>
+      </div>
+      <div class="box">
+        <div class="value" id="report-quality-skipped">0</div>
+        <div class="label">Atlanan</div>
+      </div>
+      <div class="box">
+        <div class="value" id="report-quality-retry">0</div>
+        <div class="label">Tekrar Denenecek</div>
+      </div>
+      <div class="box">
+        <div class="value" id="report-quality-pending">0</div>
+        <div class="label">Bekleyen</div>
+      </div>
+      <div class="box">
+        <div class="value" id="report-quality-success-rate">0</div>
+        <div class="label">Teslimat Başarı Oranı</div>
       </div>
     </div>
 
@@ -532,6 +597,9 @@
     high_carbon: 'Yüksek Karbon',
     cancelled_route: 'İptal Edilen Rota',
     diesel_high_emission: 'Yüksek Emisyonlu Dizel',
+    failed_delivery: 'Başarısız Teslimat',
+    skipped_stop: 'Atlanan Durak',
+    retry_scheduled: 'Tekrar Denenecek Teslimat',
   };
 
   const recommendationTypeLabels = {
@@ -539,6 +607,8 @@
     carbon_reduction: 'Karbon Azaltma',
     fleet_transition: 'Filo Dönüşümü',
     operation_quality: 'Operasyon Kalitesi',
+    delivery_quality: 'Teslimat Kalitesi',
+    retry_optimization: 'Tekrar Deneme Optimizasyonu',
   };
 
   function switchTab(tab) {
@@ -741,6 +811,15 @@
     document.getElementById('report-rec-high').textContent = rec.high_priority_count;
     document.getElementById('report-rec-medium').textContent = rec.medium_priority_count;
     document.getElementById('report-rec-low').textContent = rec.low_priority_count;
+
+    const quality = r.operational_quality_summary;
+    document.getElementById('report-quality-total').textContent = quality.total_stops;
+    document.getElementById('report-quality-delivered').textContent = quality.delivered_stop_count;
+    document.getElementById('report-quality-failed').textContent = quality.failed_stop_count;
+    document.getElementById('report-quality-skipped').textContent = quality.skipped_stop_count;
+    document.getElementById('report-quality-retry').textContent = quality.retry_scheduled_stop_count;
+    document.getElementById('report-quality-pending').textContent = quality.pending_stop_count;
+    document.getElementById('report-quality-success-rate').textContent = `%${quality.delivery_success_rate.toFixed(1)}`;
   }
 
   async function downloadSustainabilityReportPdf() {
@@ -794,6 +873,19 @@
     document.getElementById('sum-electric-count').textContent = s.electric_route_count;
     document.getElementById('sum-diesel-count').textContent = s.diesel_route_count;
     document.getElementById('sum-moto-count').textContent = s.motorcycle_route_count;
+
+    const stopsEmpty = s.total_stops === 0;
+    document.getElementById('quality-empty-msg').classList.toggle('hidden', !stopsEmpty);
+    document.getElementById('quality-content').classList.toggle('hidden', stopsEmpty);
+    if (!stopsEmpty) {
+      document.getElementById('quality-total-stops').textContent = s.total_stops;
+      document.getElementById('quality-delivered').textContent = s.delivered_stop_count;
+      document.getElementById('quality-failed').textContent = s.failed_stop_count;
+      document.getElementById('quality-skipped').textContent = s.skipped_stop_count;
+      document.getElementById('quality-retry').textContent = s.retry_scheduled_stop_count;
+      document.getElementById('quality-pending').textContent = s.pending_stop_count;
+      document.getElementById('quality-success-rate').textContent = `%${s.delivery_success_rate.toFixed(1)}`;
+    }
   }
 
   async function loadVehicleOptions() {
