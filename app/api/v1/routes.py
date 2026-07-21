@@ -1,16 +1,21 @@
+from typing import Optional
+
 from bson import ObjectId
 from bson.errors import InvalidId
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.api.v1.auth import get_user_repository
 from app.api.v1.vehicles import get_vehicle_repository
 from app.core.deps import CurrentUser, get_current_user, require_role
-from app.models.route import AssignDriverRequest, RouteCreate, RouteOut
+from app.models.route import AssignDriverRequest, RouteCreate, RouteOut, RouteStatus
+from app.models.route_filter import PaginatedRoutes, RouteFilter, RouteSortField, SortOrder
 from app.models.stop import StopDeliverRequest, StopFailRequest, StopOut
 from app.models.user import UserRole
+from app.models.vehicle import FleetVehicleType
 from app.repositories.route_repository import RouteRepository
 from app.repositories.user_repository import UserRepository
 from app.repositories.vehicle_repository import VehicleRepository
+from app.services.route_filter_builder import build_route_query
 from app.services.route_service import RouteService
 from app.services.stop_service import StopService
 
@@ -86,26 +91,87 @@ async def create_route(
     return _to_route_out(route_doc)
 
 
-@router.get("", response_model=list[RouteOut])
+async def _list_routes_paginated(
+    repo: RouteRepository, filters: RouteFilter, driver_scope: Optional[str]
+) -> PaginatedRoutes:
+    query = build_route_query(filters, driver_id=driver_scope)
+    sort_direction = 1 if filters.sort_order == SortOrder.ASC else -1
+    items, total = await repo.find_filtered(
+        query, filters.sort_by.value, sort_direction, filters.limit, filters.offset
+    )
+    return PaginatedRoutes(
+        items=[_to_route_out(route) for route in items],
+        total=total,
+        limit=filters.limit,
+        offset=filters.offset,
+        has_more=(filters.offset + len(items)) < total,
+    )
+
+
+@router.get("", response_model=PaginatedRoutes)
 async def list_routes(
     current_user: CurrentUser = Depends(get_current_user),
     repo: RouteRepository = Depends(get_route_repository),
+    status_filter: Optional[RouteStatus] = Query(default=None, alias="status"),
+    vehicle_type: Optional[FleetVehicleType] = None,
+    vehicle_id: Optional[str] = None,
+    assigned_driver_id: Optional[str] = None,
+    min_profit: Optional[float] = None,
+    max_profit: Optional[float] = None,
+    min_carbon: Optional[float] = None,
+    max_carbon: Optional[float] = None,
+    search: Optional[str] = None,
+    sort_by: RouteSortField = RouteSortField.CREATED_AT,
+    sort_order: SortOrder = SortOrder.DESC,
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
 ):
-    if current_user.role == UserRole.ADMIN:
-        routes = await repo.list_all()
-    else:
-        routes = await repo.list_by_driver(current_user.id)
+    is_admin = current_user.role == UserRole.ADMIN
+    filters = RouteFilter(
+        status=status_filter,
+        vehicle_type=vehicle_type,
+        vehicle_id=vehicle_id if is_admin else None,
+        assigned_driver_id=assigned_driver_id if is_admin else None,
+        min_profit=min_profit,
+        max_profit=max_profit,
+        min_carbon=min_carbon,
+        max_carbon=max_carbon,
+        search=search,
+        sort_by=sort_by,
+        sort_order=sort_order,
+        limit=limit,
+        offset=offset,
+    )
+    driver_scope = None if is_admin else current_user.id
+    return await _list_routes_paginated(repo, filters, driver_scope)
 
-    return [_to_route_out(route) for route in routes]
 
-
-@router.get("/my-routes", response_model=list[RouteOut])
+@router.get("/my-routes", response_model=PaginatedRoutes)
 async def list_my_routes(
     current_user: CurrentUser = Depends(require_role(UserRole.DRIVER)),
     repo: RouteRepository = Depends(get_route_repository),
+    status_filter: Optional[RouteStatus] = Query(default=None, alias="status"),
+    vehicle_type: Optional[FleetVehicleType] = None,
+    min_profit: Optional[float] = None,
+    max_profit: Optional[float] = None,
+    search: Optional[str] = None,
+    sort_by: RouteSortField = RouteSortField.CREATED_AT,
+    sort_order: SortOrder = SortOrder.DESC,
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
 ):
-    routes = await repo.list_by_driver(current_user.id)
-    return [_to_route_out(route) for route in routes]
+    filters = RouteFilter(
+        status=status_filter,
+        vehicle_type=vehicle_type,
+        min_profit=min_profit,
+        max_profit=max_profit,
+        search=search,
+        sort_by=sort_by,
+        sort_order=sort_order,
+        limit=limit,
+        offset=offset,
+    )
+    return await _list_routes_paginated(repo, filters, current_user.id)
 
 
 @router.patch("/{route_id}/assign-driver", response_model=RouteOut)

@@ -33,3 +33,11 @@ class RouteRepository(BaseRepository):
             {"$set": positional_update},
         )
         return result.modified_count
+
+    async def find_filtered(
+        self, query: dict, sort_field: str, sort_direction: int, limit: int, offset: int
+    ) -> tuple[list[dict], int]:
+        total = await self.collection.count_documents(query)
+        cursor = self.collection.find(query).sort(sort_field, sort_direction).skip(offset).limit(limit)
+        items = [doc async for doc in cursor]
+        return items, total
