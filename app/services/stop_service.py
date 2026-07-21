@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from fastapi import HTTPException, status
 
 from app.models.route import RouteStatus
-from app.models.stop import StopStatus
+from app.models.stop import StopDeliverRequest, StopStatus
 from app.repositories.route_repository import RouteRepository
 from app.services.route_service import RouteService
 
@@ -19,16 +19,27 @@ class StopService:
             self.route_service.ensure_own_route(route, current_user_id)
         return route.get("stops", [])
 
-    async def deliver_stop(self, route_id: str, stop_id: str, driver_id: str) -> dict:
+    async def deliver_stop(self, route_id: str, stop_id: str, driver_id: str, proof_in: StopDeliverRequest) -> dict:
         route, _ = await self._get_own_route_and_stop(route_id, stop_id, driver_id)
+        delivered_at = datetime.now(timezone.utc)
+        proof_of_delivery = {
+            "recipient_name": proof_in.recipient_name,
+            "recipient_signature_text": proof_in.recipient_signature_text,
+            "delivery_photo_url": proof_in.delivery_photo_url,
+            "delivered_latitude": proof_in.delivered_latitude,
+            "delivered_longitude": proof_in.delivered_longitude,
+            "delivery_note": proof_in.delivery_note,
+            "delivered_at": delivered_at,
+        }
         return await self._apply_update(
             route,
             route_id,
             stop_id,
             {
                 "status": StopStatus.DELIVERED.value,
-                "delivered_at": datetime.now(timezone.utc),
+                "delivered_at": delivered_at,
                 "failure_reason": None,
+                "proof_of_delivery": proof_of_delivery,
             },
         )
 

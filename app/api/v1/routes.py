@@ -6,7 +6,7 @@ from app.api.v1.auth import get_user_repository
 from app.api.v1.vehicles import get_vehicle_repository
 from app.core.deps import CurrentUser, get_current_user, require_role
 from app.models.route import AssignDriverRequest, RouteCreate, RouteOut
-from app.models.stop import StopFailRequest, StopOut
+from app.models.stop import StopDeliverRequest, StopFailRequest, StopOut
 from app.models.user import UserRole
 from app.repositories.route_repository import RouteRepository
 from app.repositories.user_repository import UserRepository
@@ -49,6 +49,7 @@ def _to_stop_out(doc: dict) -> StopOut:
         status=doc["status"],
         failure_reason=doc.get("failure_reason"),
         delivered_at=doc.get("delivered_at"),
+        proof_of_delivery=doc.get("proof_of_delivery"),
         created_at=doc["created_at"],
         updated_at=doc["updated_at"],
     )
@@ -170,10 +171,11 @@ async def list_route_stops(
 async def deliver_stop(
     route_id: str,
     stop_id: str,
+    proof_in: StopDeliverRequest,
     current_user: CurrentUser = Depends(require_role(UserRole.DRIVER)),
     service: StopService = Depends(get_stop_service),
 ):
-    route_doc = await service.deliver_stop(route_id, stop_id, current_user.id)
+    route_doc = await service.deliver_stop(route_id, stop_id, current_user.id, proof_in)
     return _to_route_out(route_doc)
 
 

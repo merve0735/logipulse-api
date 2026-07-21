@@ -944,7 +944,7 @@
             let stopActions = '';
             if (currentUser.role === 'driver') {
               stopActions = `
-                <button onclick="deliverStop('${r.id}','${s.id}')">Teslim Edildi</button>
+                <button onclick="showDeliverForm('${r.id}','${s.id}')">Teslim Edildi</button>
                 <button class="secondary" onclick="failStop('${r.id}','${s.id}')">Başarısız</button>
                 <button class="secondary" onclick="skipStop('${r.id}','${s.id}')">Atla</button>
                 <button class="secondary" onclick="retryStop('${r.id}','${s.id}')">Tekrar Dene</button>
@@ -953,12 +953,49 @@
             const failureLine = s.failure_reason
               ? `<div style="font-size: 12px; color: var(--danger);">Sebep: ${s.failure_reason}</div>`
               : '';
+            const pod = s.proof_of_delivery;
+            const podLine = pod
+              ? `<div style="font-size: 12px; color: var(--muted); margin-top: 4px; border-top: 1px dashed var(--border); padding-top: 4px;">
+                  <strong>Teslimat Kanıtı:</strong> ${pod.recipient_name}
+                  ${pod.recipient_signature_text ? ` | İmza: ${pod.recipient_signature_text}` : ''}
+                  ${pod.delivery_photo_url ? ` | <a href="${pod.delivery_photo_url}" target="_blank" rel="noopener">Fotoğraf</a>` : ''}
+                  ${pod.delivery_note ? ` | Not: ${pod.delivery_note}` : ''}
+                </div>`
+              : '';
+            const deliverFormHtml =
+              currentUser.role === 'driver'
+                ? `
+              <div id="deliver-form-${s.id}" class="hidden" style="margin-top: 8px; padding: 8px; border: 1px solid var(--border); border-radius: 6px;">
+                <label>Alıcı Adı *</label>
+                <input type="text" id="pod-name-${s.id}" placeholder="Ayşe Yılmaz">
+                <label>İmza Metni</label>
+                <input type="text" id="pod-sign-${s.id}" placeholder="Ayşe Yılmaz onayı">
+                <label>Fotoğraf URL</label>
+                <input type="text" id="pod-photo-${s.id}" placeholder="https://...">
+                <div class="row">
+                  <div>
+                    <label>Enlem</label>
+                    <input type="number" step="any" id="pod-lat-${s.id}">
+                  </div>
+                  <div>
+                    <label>Boylam</label>
+                    <input type="number" step="any" id="pod-lng-${s.id}">
+                  </div>
+                </div>
+                <label>Teslimat Notu</label>
+                <input type="text" id="pod-note-${s.id}" placeholder="Not">
+                <button onclick="submitDeliverForm('${r.id}','${s.id}')" style="margin-top: 8px;">Teslimi Onayla</button>
+                <button class="secondary" onclick="document.getElementById('deliver-form-${s.id}').classList.add('hidden')" style="margin-top: 8px;">Vazgeç</button>
+              </div>`
+                : '';
             return `
               <div style="border-bottom: 1px solid var(--border); padding: 6px 0;">
                 <strong>#${s.sequence_number} ${s.customer_name}</strong> — ${s.address}
                 <span class="badge">${stopStatusLabels[s.status] || s.status}</span>
                 ${failureLine}
+                ${podLine}
                 <div style="margin-top: 4px;">${stopActions}</div>
+                ${deliverFormHtml}
               </div>
             `;
           })
@@ -1059,8 +1096,29 @@
     }
   }
 
-  function deliverStop(routeId, stopId) {
-    patchStopStatus(routeId, stopId, 'deliver');
+  function showDeliverForm(routeId, stopId) {
+    document.getElementById(`deliver-form-${stopId}`).classList.remove('hidden');
+  }
+
+  function submitDeliverForm(routeId, stopId) {
+    const name = document.getElementById(`pod-name-${stopId}`).value.trim();
+    if (!name) {
+      alert('Alıcı adı zorunludur.');
+      return;
+    }
+    const body = { recipient_name: name };
+    const sign = document.getElementById(`pod-sign-${stopId}`).value.trim();
+    if (sign) body.recipient_signature_text = sign;
+    const photo = document.getElementById(`pod-photo-${stopId}`).value.trim();
+    if (photo) body.delivery_photo_url = photo;
+    const lat = document.getElementById(`pod-lat-${stopId}`).value;
+    if (lat) body.delivered_latitude = parseFloat(lat);
+    const lng = document.getElementById(`pod-lng-${stopId}`).value;
+    if (lng) body.delivered_longitude = parseFloat(lng);
+    const note = document.getElementById(`pod-note-${stopId}`).value.trim();
+    if (note) body.delivery_note = note;
+
+    patchStopStatus(routeId, stopId, 'deliver', body);
   }
 
   function failStop(routeId, stopId) {
