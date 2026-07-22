@@ -62,6 +62,7 @@
     font-size: 14px;
   }
   button:hover { background: var(--primary-dark); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
   button.secondary {
     background: transparent;
     color: var(--primary-dark);
@@ -538,8 +539,77 @@
 
   <div class="card hidden" id="routes-card">
     <h2>Rotalar</h2>
+
+    <div class="row">
+      <div>
+        <label>Ara</label>
+        <input type="text" id="filter-search" placeholder="Şehir, plaka, müşteri...">
+      </div>
+      <div>
+        <label>Durum</label>
+        <select id="filter-status">
+          <option value="">Tümü</option>
+          <option value="pending">Bekliyor</option>
+          <option value="assigned">Atandı</option>
+          <option value="in_progress">Yolda</option>
+          <option value="delivered">Teslim Edildi</option>
+          <option value="cancelled">İptal Edildi</option>
+        </select>
+      </div>
+      <div>
+        <label>Araç Tipi</label>
+        <select id="filter-vehicle-type">
+          <option value="">Tümü</option>
+          <option value="electric_van">Elektrikli Van</option>
+          <option value="diesel_van">Dizel Van</option>
+          <option value="motorcycle">Motosiklet</option>
+        </select>
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Sırala</label>
+        <select id="filter-sort-by">
+          <option value="created_at">Oluşturulma Tarihi</option>
+          <option value="distance_km">Mesafe</option>
+          <option value="estimated_profit">Kâr</option>
+          <option value="estimated_carbon_kg">Karbon</option>
+          <option value="status">Durum</option>
+        </select>
+      </div>
+      <div>
+        <label>Yön</label>
+        <select id="filter-sort-order">
+          <option value="desc">Azalan</option>
+          <option value="asc">Artan</option>
+        </select>
+      </div>
+      <div>
+        <label>Min. Kâr (TL)</label>
+        <input type="number" id="filter-min-profit" placeholder="0">
+      </div>
+      <div>
+        <label>Maks. Kâr (TL)</label>
+        <input type="number" id="filter-max-profit" placeholder="1000">
+      </div>
+    </div>
+    <div class="row" id="filter-carbon-fields">
+      <div>
+        <label>Min. Karbon (kg)</label>
+        <input type="number" id="filter-min-carbon" placeholder="0">
+      </div>
+      <div>
+        <label>Maks. Karbon (kg)</label>
+        <input type="number" id="filter-max-carbon" placeholder="50">
+      </div>
+    </div>
+    <button onclick="applyRouteFilters()">Filtrele</button>
+    <button class="secondary" onclick="clearRouteFilters()">Filtreleri Temizle</button>
     <button class="secondary" onclick="loadRoutes()">Yenile</button>
+
     <div id="routes-action-msg" class="msg"></div>
+    <div id="routes-empty-msg" class="msg hidden"></div>
+
     <table>
       <thead>
         <tr>
@@ -555,6 +625,14 @@
       </thead>
       <tbody id="routes-tbody"></tbody>
     </table>
+
+    <div class="userbar" style="margin-top: 12px;">
+      <span id="routes-total-label"></span>
+      <div>
+        <button class="secondary" id="routes-prev-btn" onclick="prevRoutesPage()">Önceki Sayfa</button>
+        <button class="secondary" id="routes-next-btn" onclick="nextRoutesPage()">Sonraki Sayfa</button>
+      </div>
+    </div>
   </div>
 
 </div>
@@ -563,6 +641,8 @@
   const API_BASE = window.location.origin;
   let token = localStorage.getItem('logipulse_token') || null;
   let currentUser = null;
+  let routesOffset = 0;
+  const ROUTES_LIMIT = 20;
 
   const vehicleLabels = {
     electric_van: 'Elektrikli Van',
@@ -694,6 +774,7 @@
       document.getElementById('admin-alerts-card').classList.remove('hidden');
       document.getElementById('admin-recommendations-card').classList.remove('hidden');
       document.getElementById('admin-report-card').classList.remove('hidden');
+      document.getElementById('filter-carbon-fields').classList.remove('hidden');
       loadVehicleOptions();
       loadDashboardSummary();
       loadAlerts();
@@ -706,8 +787,10 @@
       document.getElementById('admin-alerts-card').classList.add('hidden');
       document.getElementById('admin-recommendations-card').classList.add('hidden');
       document.getElementById('admin-report-card').classList.add('hidden');
+      document.getElementById('filter-carbon-fields').classList.add('hidden');
     }
 
+    routesOffset = 0;
     loadRoutes();
   }
 
@@ -912,6 +995,7 @@
   function logout() {
     token = null;
     currentUser = null;
+    routesOffset = 0;
     localStorage.removeItem('logipulse_token');
     document.getElementById('auth-card').classList.remove('hidden');
     document.getElementById('dashboard-card').classList.add('hidden');
@@ -1123,12 +1207,81 @@
     }
   }
 
+  function getRouteFilterParams() {
+    const params = {};
+    const search = document.getElementById('filter-search').value.trim();
+    if (search) params.search = search;
+    const status = document.getElementById('filter-status').value;
+    if (status) params.status = status;
+    const vehicleType = document.getElementById('filter-vehicle-type').value;
+    if (vehicleType) params.vehicle_type = vehicleType;
+    const minProfit = document.getElementById('filter-min-profit').value;
+    if (minProfit) params.min_profit = minProfit;
+    const maxProfit = document.getElementById('filter-max-profit').value;
+    if (maxProfit) params.max_profit = maxProfit;
+    if (currentUser.role === 'admin') {
+      const minCarbon = document.getElementById('filter-min-carbon').value;
+      if (minCarbon) params.min_carbon = minCarbon;
+      const maxCarbon = document.getElementById('filter-max-carbon').value;
+      if (maxCarbon) params.max_carbon = maxCarbon;
+    }
+    params.sort_by = document.getElementById('filter-sort-by').value;
+    params.sort_order = document.getElementById('filter-sort-order').value;
+    return params;
+  }
+
+  function hasActiveRouteFilters() {
+    const params = getRouteFilterParams();
+    delete params.sort_by;
+    delete params.sort_order;
+    return Object.keys(params).length > 0;
+  }
+
+  function buildRouteQueryString() {
+    const params = getRouteFilterParams();
+    params.limit = ROUTES_LIMIT;
+    params.offset = routesOffset;
+    return new URLSearchParams(params).toString();
+  }
+
+  function applyRouteFilters() {
+    routesOffset = 0;
+    loadRoutes();
+  }
+
+  function clearRouteFilters() {
+    document.getElementById('filter-search').value = '';
+    document.getElementById('filter-status').value = '';
+    document.getElementById('filter-vehicle-type').value = '';
+    document.getElementById('filter-min-profit').value = '';
+    document.getElementById('filter-max-profit').value = '';
+    document.getElementById('filter-min-carbon').value = '';
+    document.getElementById('filter-max-carbon').value = '';
+    document.getElementById('filter-sort-by').value = 'created_at';
+    document.getElementById('filter-sort-order').value = 'desc';
+    routesOffset = 0;
+    loadRoutes();
+  }
+
+  function nextRoutesPage() {
+    routesOffset += ROUTES_LIMIT;
+    loadRoutes();
+  }
+
+  function prevRoutesPage() {
+    routesOffset = Math.max(0, routesOffset - ROUTES_LIMIT);
+    loadRoutes();
+  }
+
   async function loadRoutes() {
-    const res = await fetch(`${API_BASE}/api/v1/routes`, {
+    const endpoint = currentUser.role === 'admin' ? 'routes' : 'routes/my-routes';
+    const query = buildRouteQueryString();
+    const res = await fetch(`${API_BASE}/api/v1/${endpoint}?${query}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) return;
-    const routes = await res.json();
+    const data = await res.json();
+    const routes = data.items;
 
     const tbody = document.getElementById('routes-tbody');
     tbody.innerHTML = '';
@@ -1241,9 +1394,21 @@
       tbody.appendChild(detailTr);
     });
 
-    document.getElementById('stat-route-count').textContent = routes.length;
+    document.getElementById('stat-route-count').textContent = data.total;
     document.getElementById('stat-total-km').textContent = totalKm.toFixed(1);
     document.getElementById('stat-total-carbon').textContent = totalCarbon.toFixed(2);
+
+    const emptyMsg = document.getElementById('routes-empty-msg');
+    if (data.total === 0) {
+      emptyMsg.textContent = hasActiveRouteFilters() ? 'Filtreye uygun rota bulunamadı.' : 'Rota bulunamadı.';
+      emptyMsg.classList.remove('hidden');
+    } else {
+      emptyMsg.classList.add('hidden');
+    }
+
+    document.getElementById('routes-total-label').textContent = `Toplam ${data.total} rota`;
+    document.getElementById('routes-prev-btn').disabled = routesOffset === 0;
+    document.getElementById('routes-next-btn').disabled = !data.has_more;
   }
 
   async function patchRouteStatus(path, successLabel) {
