@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>LogiPulse — Demo Paneli</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   :root {
     --primary: #16a34a;
@@ -195,6 +197,29 @@
       <span id="user-info"></span>
       <button class="secondary" onclick="logout()">Çıkış Yap</button>
     </div>
+  </div>
+
+  <div class="card hidden" id="tracking-map-card">
+    <h2>Canlı Kurye Haritası</h2>
+    <button class="secondary" onclick="loadDriverLocations()">Konumları Yenile</button>
+    <div id="tracking-map" style="height: 360px; border-radius: 8px; margin-top: 10px;"></div>
+    <div id="tracking-no-location-list" style="margin-top: 10px; font-size: 13px; color: var(--muted);"></div>
+  </div>
+
+  <div class="card hidden" id="driver-location-card">
+    <h2>Konumumu Güncelle</h2>
+    <div class="row">
+      <div>
+        <label>Enlem (latitude)</label>
+        <input type="number" step="any" id="my-location-lat" placeholder="36.8841">
+      </div>
+      <div>
+        <label>Boylam (longitude)</label>
+        <input type="number" step="any" id="my-location-lng" placeholder="30.7056">
+      </div>
+    </div>
+    <button onclick="submitMyLocation()">Konum Gönder</button>
+    <div id="my-location-msg" class="msg"></div>
   </div>
 
   <div class="card hidden" id="admin-summary-card">
@@ -829,12 +854,16 @@
       document.getElementById('admin-recommendations-card').classList.remove('hidden');
       document.getElementById('admin-report-card').classList.remove('hidden');
       document.getElementById('filter-carbon-fields').classList.remove('hidden');
+      document.getElementById('tracking-map-card').classList.remove('hidden');
+      document.getElementById('driver-location-card').classList.add('hidden');
       loadVehicleOptions();
       loadDriverOptions();
       loadDashboardSummary();
       loadAlerts();
       loadRecommendations();
       loadSustainabilityReport();
+      loadDriverLocations();
+      startTrackingAutoRefresh();
     } else {
       document.getElementById('vehicle-recommendation-card').classList.add('hidden');
       document.getElementById('create-route-card').classList.add('hidden');
@@ -844,6 +873,8 @@
       document.getElementById('admin-recommendations-card').classList.add('hidden');
       document.getElementById('admin-report-card').classList.add('hidden');
       document.getElementById('filter-carbon-fields').classList.add('hidden');
+      document.getElementById('tracking-map-card').classList.add('hidden');
+      document.getElementById('driver-location-card').classList.remove('hidden');
     }
 
     routesOffset = 0;
@@ -1145,7 +1176,10 @@
     document.getElementById('vehicle-recommendation-card').classList.add('hidden');
     document.getElementById('create-route-card').classList.add('hidden');
     document.getElementById('csv-import-card').classList.add('hidden');
+    document.getElementById('tracking-map-card').classList.add('hidden');
+    document.getElementById('driver-location-card').classList.add('hidden');
     document.getElementById('routes-card').classList.add('hidden');
+    stopTrackingAutoRefresh();
   }
 
   function addStopRow() {
@@ -1656,6 +1690,104 @@
 
   function retryStop(routeId, stopId) {
     patchStopStatus(routeId, stopId, 'schedule-retry');
+  }
+
+  let trackingMap = null;
+  let trackingMarkers = [];
+  let trackingAutoRefreshInterval = null;
+
+  function initTrackingMap() {
+    if (trackingMap) return;
+    trackingMap = L.map('tracking-map').setView([39.0, 35.0], 6);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors',
+    }).addTo(trackingMap);
+  }
+
+  async function loadDriverLocations() {
+    const res = await fetch(`${API_BASE}/api/v1/tracking/drivers`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return;
+    const drivers = await res.json();
+
+    initTrackingMap();
+    trackingMarkers.forEach((m) => trackingMap.removeLayer(m));
+    trackingMarkers = [];
+
+    const noLocationDrivers = [];
+    const bounds = [];
+
+    drivers.forEach((d) => {
+      if (d.latitude === null || d.longitude === null) {
+        noLocationDrivers.push(d);
+        return;
+      }
+      const routeInfo = d.active_route_name
+        ? `${d.active_route_name} (${statusLabels[d.route_status] || d.route_status})`
+        : 'Aktif rota yok';
+      const marker = L.marker([d.latitude, d.longitude]).addTo(trackingMap);
+      marker.bindPopup(`
+        <strong>${d.driver_email}</strong><br>
+        ${routeInfo}<br>
+        Güncelleme: ${d.updated_at ? new Date(d.updated_at).toLocaleString('tr-TR') : '—'}
+      `);
+      trackingMarkers.push(marker);
+      bounds.push([d.latitude, d.longitude]);
+    });
+
+    if (bounds.length > 0) {
+      trackingMap.fitBounds(bounds, { maxZoom: 12, padding: [30, 30] });
+    }
+
+    const noLocationList = document.getElementById('tracking-no-location-list');
+    noLocationList.textContent =
+      noLocationDrivers.length > 0
+        ? `Konum bilgisi yok: ${noLocationDrivers.map((d) => d.driver_email).join(', ')}`
+        : '';
+  }
+
+  function startTrackingAutoRefresh() {
+    if (trackingAutoRefreshInterval) return;
+    trackingAutoRefreshInterval = setInterval(loadDriverLocations, 15000);
+  }
+
+  function stopTrackingAutoRefresh() {
+    if (trackingAutoRefreshInterval) {
+      clearInterval(trackingAutoRefreshInterval);
+      trackingAutoRefreshInterval = null;
+    }
+  }
+
+  async function submitMyLocation() {
+    const msg = document.getElementById('my-location-msg');
+    msg.textContent = '';
+    msg.className = 'msg';
+    const lat = parseFloat(document.getElementById('my-location-lat').value);
+    const lng = parseFloat(document.getElementById('my-location-lng').value);
+    if (Number.isNaN(lat) || Number.isNaN(lng)) {
+      msg.textContent = 'Enlem ve boylam girmelisin.';
+      msg.className = 'msg error';
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/tracking/me/location`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ latitude: lat, longitude: lng }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Konum gönderilemedi');
+      msg.textContent = data.message;
+      msg.className = 'msg success';
+    } catch (err) {
+      msg.textContent = err.message;
+      msg.className = 'msg error';
+    }
   }
 </script>
 
