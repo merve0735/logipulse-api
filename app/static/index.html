@@ -1713,6 +1713,7 @@
     const drivers = await res.json();
 
     initTrackingMap();
+    setTimeout(() => trackingMap.invalidateSize(), 0);
     trackingMarkers.forEach((m) => trackingMap.removeLayer(m));
     trackingMarkers = [];
 
