@@ -60,7 +60,7 @@ def _to_stop_out(doc: dict) -> StopOut:
     )
 
 
-def _to_route_out(doc: dict) -> RouteOut:
+def to_route_out(doc: dict) -> RouteOut:
     return RouteOut(
         id=str(doc["_id"]),
         origin=doc["origin"],
@@ -88,7 +88,7 @@ async def create_route(
     service: RouteService = Depends(get_route_service),
 ):
     route_doc = await service.create_route(route_in, created_by=current_user.id)
-    return _to_route_out(route_doc)
+    return to_route_out(route_doc)
 
 
 async def _list_routes_paginated(
@@ -100,7 +100,7 @@ async def _list_routes_paginated(
         query, filters.sort_by.value, sort_direction, filters.limit, filters.offset
     )
     return PaginatedRoutes(
-        items=[_to_route_out(route) for route in items],
+        items=[to_route_out(route) for route in items],
         total=total,
         limit=filters.limit,
         offset=filters.offset,
@@ -190,7 +190,7 @@ async def assign_driver(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Geçerli bir sürücü değil")
 
     route_doc = await service.assign_driver(route_id, assign_in.driver_id)
-    return _to_route_out(route_doc)
+    return to_route_out(route_doc)
 
 
 @router.patch("/{route_id}/start", response_model=RouteOut)
@@ -200,7 +200,7 @@ async def start_route(
     service: RouteService = Depends(get_route_service),
 ):
     route_doc = await service.start_route(route_id, driver_id=current_user.id)
-    return _to_route_out(route_doc)
+    return to_route_out(route_doc)
 
 
 @router.patch("/{route_id}/deliver", response_model=RouteOut)
@@ -210,7 +210,7 @@ async def deliver_route(
     service: RouteService = Depends(get_route_service),
 ):
     route_doc = await service.deliver_route(route_id, driver_id=current_user.id)
-    return _to_route_out(route_doc)
+    return to_route_out(route_doc)
 
 
 @router.patch("/{route_id}/cancel", response_model=RouteOut)
@@ -220,7 +220,7 @@ async def cancel_route(
     service: RouteService = Depends(get_route_service),
 ):
     route_doc = await service.cancel_route(route_id)
-    return _to_route_out(route_doc)
+    return to_route_out(route_doc)
 
 
 @router.get("/{route_id}/stops", response_model=list[StopOut])
@@ -242,7 +242,7 @@ async def deliver_stop(
     service: StopService = Depends(get_stop_service),
 ):
     route_doc = await service.deliver_stop(route_id, stop_id, current_user.id, proof_in)
-    return _to_route_out(route_doc)
+    return to_route_out(route_doc)
 
 
 @router.patch("/{route_id}/stops/{stop_id}/fail", response_model=RouteOut)
@@ -254,7 +254,7 @@ async def fail_stop(
     service: StopService = Depends(get_stop_service),
 ):
     route_doc = await service.fail_stop(route_id, stop_id, current_user.id, fail_in.failure_reason)
-    return _to_route_out(route_doc)
+    return to_route_out(route_doc)
 
 
 @router.patch("/{route_id}/stops/{stop_id}/skip", response_model=RouteOut)
@@ -265,7 +265,7 @@ async def skip_stop(
     service: StopService = Depends(get_stop_service),
 ):
     route_doc = await service.skip_stop(route_id, stop_id, current_user.id)
-    return _to_route_out(route_doc)
+    return to_route_out(route_doc)
 
 
 @router.patch("/{route_id}/stops/{stop_id}/schedule-retry", response_model=RouteOut)
@@ -276,4 +276,4 @@ async def schedule_retry_stop(
     service: StopService = Depends(get_stop_service),
 ):
     route_doc = await service.schedule_retry_stop(route_id, stop_id, current_user.id)
-    return _to_route_out(route_doc)
+    return to_route_out(route_doc)
