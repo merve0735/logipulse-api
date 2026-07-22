@@ -537,6 +537,59 @@
     <div id="route-msg" class="msg"></div>
   </div>
 
+  <div class="card hidden" id="csv-import-card">
+    <h2>CSV ile Rota İçe Aktar</h2>
+    <div class="row">
+      <div>
+        <label>Rota Adı</label>
+        <input type="text" id="import-route-name" placeholder="Antalya Teslimat Turu">
+      </div>
+      <div>
+        <label>Araç</label>
+        <select id="import-vehicle-id"></select>
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Mesafe (km)</label>
+        <input type="number" id="import-distance" placeholder="25">
+      </div>
+      <div>
+        <label>Beklenen Gelir (TL)</label>
+        <input type="number" id="import-revenue" placeholder="500">
+      </div>
+      <div>
+        <label>Sürücü Ata (opsiyonel)</label>
+        <select id="import-driver-id">
+          <option value="">Atama yok</option>
+        </select>
+      </div>
+    </div>
+    <label>CSV Dosyası</label>
+    <input type="file" id="import-file" accept=".csv">
+    <button onclick="importRoutesCsv()">CSV Yükle ve Rota Oluştur</button>
+    <div id="import-msg" class="msg"></div>
+    <div id="import-errors" class="hidden" style="margin-top: 10px;">
+      <table>
+        <thead>
+          <tr>
+            <th>Satır</th>
+            <th>Alan</th>
+            <th>Hata</th>
+          </tr>
+        </thead>
+        <tbody id="import-errors-tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="info-box" style="margin-top: 16px;">
+      <strong>Örnek CSV Formatı</strong>
+      <pre style="white-space: pre-wrap; font-size: 12px; margin: 6px 0 0;">sequence_number,customer_name,customer_phone,address,latitude,longitude,package_weight_kg,delivery_note
+1,Ayşe Yılmaz,05550000001,Konyaaltı Antalya,36.8841,30.7056,12.5,Apartman girişine bırakılmasın
+2,Mehmet Demir,05550000002,Muratpaşa Antalya,36.8870,30.7075,8.0,Telefonla aransın</pre>
+    </div>
+  </div>
+
   <div class="card hidden" id="routes-card">
     <h2>Rotalar</h2>
 
@@ -770,12 +823,14 @@
     if (currentUser.role === 'admin') {
       document.getElementById('vehicle-recommendation-card').classList.remove('hidden');
       document.getElementById('create-route-card').classList.remove('hidden');
+      document.getElementById('csv-import-card').classList.remove('hidden');
       document.getElementById('admin-summary-card').classList.remove('hidden');
       document.getElementById('admin-alerts-card').classList.remove('hidden');
       document.getElementById('admin-recommendations-card').classList.remove('hidden');
       document.getElementById('admin-report-card').classList.remove('hidden');
       document.getElementById('filter-carbon-fields').classList.remove('hidden');
       loadVehicleOptions();
+      loadDriverOptions();
       loadDashboardSummary();
       loadAlerts();
       loadRecommendations();
@@ -783,6 +838,7 @@
     } else {
       document.getElementById('vehicle-recommendation-card').classList.add('hidden');
       document.getElementById('create-route-card').classList.add('hidden');
+      document.getElementById('csv-import-card').classList.add('hidden');
       document.getElementById('admin-summary-card').classList.add('hidden');
       document.getElementById('admin-alerts-card').classList.add('hidden');
       document.getElementById('admin-recommendations-card').classList.add('hidden');
@@ -978,18 +1034,100 @@
     if (!res.ok) return;
     const vehicles = await res.json();
 
-    const select = document.getElementById('route-vehicle-id');
-    select.innerHTML = '';
-    vehicles.forEach((v) => {
-      const option = document.createElement('option');
-      option.value = v.id;
-      option.textContent = `${v.plate_number} - ${v.vehicle_type}`;
-      select.appendChild(option);
-    });
+    [document.getElementById('route-vehicle-id'), document.getElementById('import-vehicle-id')].forEach(
+      (select) => {
+        select.innerHTML = '';
+        vehicles.forEach((v) => {
+          const option = document.createElement('option');
+          option.value = v.id;
+          option.textContent = `${v.plate_number} - ${v.vehicle_type}`;
+          select.appendChild(option);
+        });
+      }
+    );
 
     const noVehicles = vehicles.length === 0;
     document.getElementById('no-vehicles-msg').classList.toggle('hidden', !noVehicles);
     document.getElementById('route-form-fields').classList.toggle('hidden', noVehicles);
+  }
+
+  async function loadDriverOptions() {
+    const res = await fetch(`${API_BASE}/api/v1/users/drivers`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return;
+    const drivers = await res.json();
+
+    const select = document.getElementById('import-driver-id');
+    select.innerHTML = '<option value="">Atama yok</option>';
+    drivers.forEach((d) => {
+      const option = document.createElement('option');
+      option.value = d.id;
+      option.textContent = `${d.full_name} (${d.email})`;
+      select.appendChild(option);
+    });
+  }
+
+  async function importRoutesCsv() {
+    const msg = document.getElementById('import-msg');
+    msg.textContent = '';
+    msg.className = 'msg';
+    document.getElementById('import-errors').classList.add('hidden');
+
+    const fileInput = document.getElementById('import-file');
+    if (!fileInput.files.length) {
+      msg.textContent = 'Önce bir CSV dosyası seç.';
+      msg.className = 'msg error';
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+    formData.append('route_name', document.getElementById('import-route-name').value);
+    formData.append('vehicle_id', document.getElementById('import-vehicle-id').value);
+    formData.append('expected_revenue', document.getElementById('import-revenue').value);
+    formData.append('distance_km', document.getElementById('import-distance').value);
+    const driverId = document.getElementById('import-driver-id').value;
+    if (driverId) formData.append('assigned_driver_id', driverId);
+
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/imports/routes/csv`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (data.errors) {
+          msg.textContent = data.message;
+          msg.className = 'msg error';
+          const tbody = document.getElementById('import-errors-tbody');
+          tbody.innerHTML = data.errors
+            .map((e) => `<tr><td>${e.row}</td><td>${e.field}</td><td>${e.message}</td></tr>`)
+            .join('');
+          document.getElementById('import-errors').classList.remove('hidden');
+        } else {
+          throw new Error(data.detail || 'CSV içe aktarılamadı');
+        }
+        return;
+      }
+
+      const route = data.route;
+      msg.textContent =
+        `${data.message} — Araç: ${route.vehicle_plate_number} | ${route.stops.length} durak | ` +
+        `Maliyet: ${route.estimated_cost} TL | Kâr: ${route.estimated_profit} TL`;
+      msg.className = 'msg success';
+      fileInput.value = '';
+      loadRoutes();
+      loadDashboardSummary();
+      loadAlerts();
+      loadRecommendations();
+      loadSustainabilityReport();
+    } catch (err) {
+      msg.textContent = err.message;
+      msg.className = 'msg error';
+    }
   }
 
   function logout() {
@@ -1006,6 +1144,7 @@
     document.getElementById('admin-report-card').classList.add('hidden');
     document.getElementById('vehicle-recommendation-card').classList.add('hidden');
     document.getElementById('create-route-card').classList.add('hidden');
+    document.getElementById('csv-import-card').classList.add('hidden');
     document.getElementById('routes-card').classList.add('hidden');
   }
 
