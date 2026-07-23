@@ -870,6 +870,71 @@
     <div id="vehicle-create-msg" class="msg"></div>
   </div>
 
+  <div class="card hidden" id="audit-logs-card" data-page="islem-gecmisi">
+    <h2>İşlem Geçmişi</h2>
+
+    <div class="row">
+      <div>
+        <label>İşlem</label>
+        <select id="audit-filter-action">
+          <option value="">Tümü</option>
+          <option value="user_registered">Kullanıcı Kaydoldu</option>
+          <option value="user_logged_in">Kullanıcı Giriş Yaptı</option>
+          <option value="vehicle_created">Araç Eklendi</option>
+          <option value="route_created">Rota Oluşturuldu</option>
+          <option value="route_assigned">Rota Atandı</option>
+          <option value="route_started">Rota Başlatıldı</option>
+          <option value="route_delivered">Rota Teslim Edildi</option>
+          <option value="route_cancelled">Rota İptal Edildi</option>
+          <option value="stop_delivered">Durak Teslim Edildi</option>
+          <option value="stop_failed">Durak Başarısız</option>
+          <option value="stop_skipped">Durak Atlandı</option>
+          <option value="stop_retry_scheduled">Durak Tekrar Denenecek</option>
+          <option value="driver_location_updated">Konum Güncellendi</option>
+          <option value="csv_route_imported">CSV İçe Aktarıldı</option>
+          <option value="sustainability_pdf_downloaded">Rapor PDF İndirildi</option>
+        </select>
+      </div>
+      <div>
+        <label>Rol</label>
+        <select id="audit-filter-role">
+          <option value="">Tümü</option>
+          <option value="admin">Yönetici</option>
+          <option value="driver">Sürücü</option>
+        </select>
+      </div>
+      <div>
+        <label>Varlık Tipi</label>
+        <input type="text" id="audit-filter-entity-type" placeholder="route, stop, vehicle...">
+      </div>
+    </div>
+    <button onclick="applyAuditLogFilters()">Filtrele</button>
+    <button class="secondary" onclick="clearAuditLogFilters()">Filtreleri Temizle</button>
+    <button class="secondary" onclick="loadAuditLogs()">Yenile</button>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Tarih</th>
+          <th>Kullanıcı</th>
+          <th>Rol</th>
+          <th>İşlem</th>
+          <th>Açıklama</th>
+          <th>Varlık Tipi</th>
+        </tr>
+      </thead>
+      <tbody id="audit-logs-tbody"></tbody>
+    </table>
+
+    <div class="userbar" style="margin-top: 12px;">
+      <span id="audit-logs-total-label"></span>
+      <div>
+        <button class="secondary" id="audit-logs-prev-btn" onclick="prevAuditLogsPage()">Önceki Sayfa</button>
+        <button class="secondary" id="audit-logs-next-btn" onclick="nextAuditLogsPage()">Sonraki Sayfa</button>
+      </div>
+    </div>
+  </div>
+
     </main>
   </div>
 </div>
@@ -892,6 +957,7 @@
     { key: 'uyarilar', label: 'Uyarılar' },
     { key: 'oneriler', label: 'Öneriler' },
     { key: 'rapor', label: 'Sürdürülebilirlik Raporu' },
+    { key: 'islem-gecmisi', label: 'İşlem Geçmişi' },
   ];
 
   const DRIVER_MENU = [
@@ -929,6 +995,7 @@
     else if (pageKey === 'uyarilar') loadAlerts();
     else if (pageKey === 'oneriler') loadRecommendations();
     else if (pageKey === 'rapor') loadSustainabilityReport();
+    else if (pageKey === 'islem-gecmisi') loadAuditLogs();
 
     closeMobileSidebar();
   }
@@ -998,6 +1065,96 @@
       msg.textContent = err.message;
       msg.className = 'msg error';
     }
+  }
+
+  const AUDIT_LOGS_LIMIT = 20;
+  let auditLogsOffset = 0;
+
+  const auditActionLabels = {
+    user_registered: 'Kullanıcı Kaydoldu',
+    user_logged_in: 'Kullanıcı Giriş Yaptı',
+    vehicle_created: 'Araç Eklendi',
+    route_created: 'Rota Oluşturuldu',
+    route_assigned: 'Rota Atandı',
+    route_started: 'Rota Başlatıldı',
+    route_delivered: 'Rota Teslim Edildi',
+    route_cancelled: 'Rota İptal Edildi',
+    stop_delivered: 'Durak Teslim Edildi',
+    stop_failed: 'Durak Başarısız',
+    stop_skipped: 'Durak Atlandı',
+    stop_retry_scheduled: 'Durak Tekrar Denenecek',
+    proof_of_delivery_added: 'Teslimat Kanıtı Eklendi',
+    driver_location_updated: 'Konum Güncellendi',
+    csv_route_imported: 'CSV İçe Aktarıldı',
+    sustainability_pdf_downloaded: 'Rapor PDF İndirildi',
+  };
+
+  const roleLabels = {
+    admin: 'Yönetici',
+    driver: 'Sürücü',
+  };
+
+  function buildAuditLogQueryString() {
+    const params = { limit: AUDIT_LOGS_LIMIT, offset: auditLogsOffset };
+    const action = document.getElementById('audit-filter-action').value;
+    const role = document.getElementById('audit-filter-role').value;
+    const entityType = document.getElementById('audit-filter-entity-type').value;
+    if (action) params.action = action;
+    if (role) params.actor_role = role;
+    if (entityType) params.entity_type = entityType;
+    return new URLSearchParams(params).toString();
+  }
+
+  function applyAuditLogFilters() {
+    auditLogsOffset = 0;
+    loadAuditLogs();
+  }
+
+  function clearAuditLogFilters() {
+    document.getElementById('audit-filter-action').value = '';
+    document.getElementById('audit-filter-role').value = '';
+    document.getElementById('audit-filter-entity-type').value = '';
+    auditLogsOffset = 0;
+    loadAuditLogs();
+  }
+
+  function nextAuditLogsPage() {
+    auditLogsOffset += AUDIT_LOGS_LIMIT;
+    loadAuditLogs();
+  }
+
+  function prevAuditLogsPage() {
+    auditLogsOffset = Math.max(0, auditLogsOffset - AUDIT_LOGS_LIMIT);
+    loadAuditLogs();
+  }
+
+  async function loadAuditLogs() {
+    const query = buildAuditLogQueryString();
+    const res = await fetch(`${API_BASE}/api/v1/audit-logs?${query}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+
+    const tbody = document.getElementById('audit-logs-tbody');
+    tbody.innerHTML = data.items
+      .map(
+        (log) => `
+      <tr>
+        <td>${new Date(log.created_at).toLocaleString('tr-TR')}</td>
+        <td>${log.actor_email || '—'}</td>
+        <td>${roleLabels[log.actor_role] || log.actor_role || '—'}</td>
+        <td><span class="badge">${auditActionLabels[log.action] || log.action}</span></td>
+        <td>${log.description}</td>
+        <td>${log.entity_type || '—'}</td>
+      </tr>
+    `
+      )
+      .join('');
+
+    document.getElementById('audit-logs-total-label').textContent = `Toplam ${data.total} kayıt`;
+    document.getElementById('audit-logs-prev-btn').disabled = auditLogsOffset === 0;
+    document.getElementById('audit-logs-next-btn').disabled = !data.has_more;
   }
 
   const vehicleLabels = {

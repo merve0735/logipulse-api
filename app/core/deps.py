@@ -9,9 +9,10 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 
 class CurrentUser:
-    def __init__(self, id: str, role: UserRole):
+    def __init__(self, id: str, role: UserRole, email: str):
         self.id = id
         self.role = role
+        self.email = email
 
 
 async def get_current_user(token: str = Depends(oauth2_scheme)) -> CurrentUser:
@@ -24,11 +25,12 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> CurrentUser:
         payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
         user_id: str = payload.get("sub")
         role: str = payload.get("role")
+        email: str = payload.get("email")
         if user_id is None or role is None:
             raise credentials_exception
     except JWTError:
         raise credentials_exception
-    return CurrentUser(id=user_id, role=UserRole(role))
+    return CurrentUser(id=user_id, role=UserRole(role), email=email)
 
 
 def require_role(*roles: UserRole):

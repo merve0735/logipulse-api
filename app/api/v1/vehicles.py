@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, status
 
+from app.api.v1.audit_logs import get_audit_log_service
 from app.core.deps import CurrentUser, require_role
+from app.models.audit_log import AuditAction
 from app.models.user import UserRole
 from app.models.vehicle import (
     VehicleCreate,
@@ -9,6 +11,7 @@ from app.models.vehicle import (
     VehicleRecommendationResponse,
 )
 from app.repositories.vehicle_repository import VehicleRepository
+from app.services.audit_log_service import AuditLogService
 from app.services.vehicle_recommendation_service import VehicleRecommendationService
 from app.services.vehicle_service import VehicleService
 
@@ -47,8 +50,21 @@ async def create_vehicle(
     vehicle_in: VehicleCreate,
     current_user: CurrentUser = Depends(require_role(UserRole.ADMIN)),
     service: VehicleService = Depends(get_vehicle_service),
+    audit_service: AuditLogService = Depends(get_audit_log_service),
 ):
     vehicle_doc = await service.create_vehicle(vehicle_in)
+
+    await audit_service.record(
+        actor_user_id=current_user.id,
+        actor_email=current_user.email,
+        actor_role=current_user.role,
+        action=AuditAction.VEHICLE_CREATED,
+        description=f"Yeni araç eklendi: {vehicle_doc['plate_number']} ({vehicle_doc['vehicle_type']}).",
+        entity_type="vehicle",
+        entity_id=str(vehicle_doc["_id"]),
+        metadata={"plate_number": vehicle_doc["plate_number"], "vehicle_type": vehicle_doc["vehicle_type"]},
+    )
+
     return _to_vehicle_out(vehicle_doc)
 
 

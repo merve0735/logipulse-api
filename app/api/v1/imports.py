@@ -3,13 +3,17 @@ from typing import Optional
 from fastapi import APIRouter, Depends, File, Form, UploadFile, status
 from fastapi.responses import JSONResponse
 
+from app.api.v1.audit_logs import get_audit_log_service
 from app.api.v1.auth import get_user_repository
 from app.api.v1.routes import get_route_service, to_route_out
 from app.core.deps import CurrentUser, require_role
+from app.models.audit_log import AuditAction
 from app.models.user import UserRole
 from app.repositories.user_repository import UserRepository
+from app.services.audit_log_service import AuditLogService
 from app.services.csv_route_import import CsvValidationError
 from app.services.import_service import ImportService
+from app.services.route_rules import route_name as build_route_name
 from app.services.route_service import RouteService
 
 router = APIRouter(prefix="/imports", tags=["imports"])
@@ -32,6 +36,7 @@ async def import_routes_csv(
     assigned_driver_id: Optional[str] = Form(None),
     current_user: CurrentUser = Depends(require_role(UserRole.ADMIN)),
     service: ImportService = Depends(get_import_service),
+    audit_service: AuditLogService = Depends(get_audit_log_service),
 ):
     csv_bytes = await file.read()
 
@@ -50,6 +55,16 @@ async def import_routes_csv(
             status_code=status.HTTP_400_BAD_REQUEST,
             content={"message": "CSV doğrulama hataları bulundu.", "errors": exc.errors},
         )
+
+    await audit_service.record(
+        actor_user_id=current_user.id,
+        actor_email=current_user.email,
+        actor_role=current_user.role,
+        action=AuditAction.CSV_ROUTE_IMPORTED,
+        description=f"CSV üzerinden rota içe aktarıldı: {build_route_name(route_doc)}.",
+        entity_type="route",
+        entity_id=str(route_doc["_id"]),
+    )
 
     return JSONResponse(
         status_code=status.HTTP_201_CREATED,

@@ -4,9 +4,11 @@ from bson import ObjectId
 from bson.errors import InvalidId
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from app.api.v1.audit_logs import get_audit_log_service
 from app.api.v1.auth import get_user_repository
 from app.api.v1.vehicles import get_vehicle_repository
 from app.core.deps import CurrentUser, get_current_user, require_role
+from app.models.audit_log import AuditAction
 from app.models.route import AssignDriverRequest, RouteCreate, RouteOut, RouteStatus
 from app.models.route_filter import PaginatedRoutes, RouteFilter, RouteSortField, SortOrder
 from app.models.stop import StopDeliverRequest, StopFailRequest, StopOut
@@ -15,7 +17,9 @@ from app.models.vehicle import FleetVehicleType
 from app.repositories.route_repository import RouteRepository
 from app.repositories.user_repository import UserRepository
 from app.repositories.vehicle_repository import VehicleRepository
+from app.services.audit_log_service import AuditLogService
 from app.services.route_filter_builder import build_route_query
+from app.services.route_rules import route_name
 from app.services.route_service import RouteService
 from app.services.stop_service import StopService
 
@@ -86,8 +90,20 @@ async def create_route(
     route_in: RouteCreate,
     current_user: CurrentUser = Depends(require_role(UserRole.ADMIN)),
     service: RouteService = Depends(get_route_service),
+    audit_service: AuditLogService = Depends(get_audit_log_service),
 ):
     route_doc = await service.create_route(route_in, created_by=current_user.id)
+
+    await audit_service.record(
+        actor_user_id=current_user.id,
+        actor_email=current_user.email,
+        actor_role=current_user.role,
+        action=AuditAction.ROUTE_CREATED,
+        description=f"Yeni rota oluşturuldu: {route_name(route_doc)}.",
+        entity_type="route",
+        entity_id=str(route_doc["_id"]),
+    )
+
     return to_route_out(route_doc)
 
 
@@ -181,6 +197,7 @@ async def assign_driver(
     current_user: CurrentUser = Depends(require_role(UserRole.ADMIN)),
     user_repo: UserRepository = Depends(get_user_repository),
     service: RouteService = Depends(get_route_service),
+    audit_service: AuditLogService = Depends(get_audit_log_service),
 ):
     try:
         driver = await user_repo.find_one({"_id": ObjectId(assign_in.driver_id)})
@@ -190,6 +207,18 @@ async def assign_driver(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Geçerli bir sürücü değil")
 
     route_doc = await service.assign_driver(route_id, assign_in.driver_id)
+
+    await audit_service.record(
+        actor_user_id=current_user.id,
+        actor_email=current_user.email,
+        actor_role=current_user.role,
+        action=AuditAction.ROUTE_ASSIGNED,
+        description=f"{route_name(route_doc)} rotası sürücüye atandı: {driver['email']}.",
+        entity_type="route",
+        entity_id=route_id,
+        metadata={"driver_id": assign_in.driver_id, "driver_email": driver["email"]},
+    )
+
     return to_route_out(route_doc)
 
 
@@ -198,8 +227,20 @@ async def start_route(
     route_id: str,
     current_user: CurrentUser = Depends(require_role(UserRole.DRIVER)),
     service: RouteService = Depends(get_route_service),
+    audit_service: AuditLogService = Depends(get_audit_log_service),
 ):
     route_doc = await service.start_route(route_id, driver_id=current_user.id)
+
+    await audit_service.record(
+        actor_user_id=current_user.id,
+        actor_email=current_user.email,
+        actor_role=current_user.role,
+        action=AuditAction.ROUTE_STARTED,
+        description=f"{route_name(route_doc)} rotası başlatıldı.",
+        entity_type="route",
+        entity_id=route_id,
+    )
+
     return to_route_out(route_doc)
 
 
@@ -208,8 +249,20 @@ async def deliver_route(
     route_id: str,
     current_user: CurrentUser = Depends(require_role(UserRole.DRIVER)),
     service: RouteService = Depends(get_route_service),
+    audit_service: AuditLogService = Depends(get_audit_log_service),
 ):
     route_doc = await service.deliver_route(route_id, driver_id=current_user.id)
+
+    await audit_service.record(
+        actor_user_id=current_user.id,
+        actor_email=current_user.email,
+        actor_role=current_user.role,
+        action=AuditAction.ROUTE_DELIVERED,
+        description=f"{route_name(route_doc)} rotası teslim edildi.",
+        entity_type="route",
+        entity_id=route_id,
+    )
+
     return to_route_out(route_doc)
 
 
@@ -218,8 +271,20 @@ async def cancel_route(
     route_id: str,
     current_user: CurrentUser = Depends(require_role(UserRole.ADMIN)),
     service: RouteService = Depends(get_route_service),
+    audit_service: AuditLogService = Depends(get_audit_log_service),
 ):
     route_doc = await service.cancel_route(route_id)
+
+    await audit_service.record(
+        actor_user_id=current_user.id,
+        actor_email=current_user.email,
+        actor_role=current_user.role,
+        action=AuditAction.ROUTE_CANCELLED,
+        description=f"{route_name(route_doc)} rotası iptal edildi.",
+        entity_type="route",
+        entity_id=route_id,
+    )
+
     return to_route_out(route_doc)
 
 
@@ -240,8 +305,21 @@ async def deliver_stop(
     proof_in: StopDeliverRequest,
     current_user: CurrentUser = Depends(require_role(UserRole.DRIVER)),
     service: StopService = Depends(get_stop_service),
+    audit_service: AuditLogService = Depends(get_audit_log_service),
 ):
     route_doc = await service.deliver_stop(route_id, stop_id, current_user.id, proof_in)
+
+    await audit_service.record(
+        actor_user_id=current_user.id,
+        actor_email=current_user.email,
+        actor_role=current_user.role,
+        action=AuditAction.STOP_DELIVERED,
+        description=f"Durak teslim edildi olarak işaretlendi: {proof_in.recipient_name}.",
+        entity_type="stop",
+        entity_id=stop_id,
+        metadata={"route_id": route_id, "recipient_name": proof_in.recipient_name},
+    )
+
     return to_route_out(route_doc)
 
 
@@ -252,8 +330,21 @@ async def fail_stop(
     fail_in: StopFailRequest,
     current_user: CurrentUser = Depends(require_role(UserRole.DRIVER)),
     service: StopService = Depends(get_stop_service),
+    audit_service: AuditLogService = Depends(get_audit_log_service),
 ):
     route_doc = await service.fail_stop(route_id, stop_id, current_user.id, fail_in.failure_reason)
+
+    await audit_service.record(
+        actor_user_id=current_user.id,
+        actor_email=current_user.email,
+        actor_role=current_user.role,
+        action=AuditAction.STOP_FAILED,
+        description=f"Durak başarısız olarak işaretlendi: {fail_in.failure_reason}.",
+        entity_type="stop",
+        entity_id=stop_id,
+        metadata={"route_id": route_id, "failure_reason": fail_in.failure_reason},
+    )
+
     return to_route_out(route_doc)
 
 
@@ -263,8 +354,21 @@ async def skip_stop(
     stop_id: str,
     current_user: CurrentUser = Depends(require_role(UserRole.DRIVER)),
     service: StopService = Depends(get_stop_service),
+    audit_service: AuditLogService = Depends(get_audit_log_service),
 ):
     route_doc = await service.skip_stop(route_id, stop_id, current_user.id)
+
+    await audit_service.record(
+        actor_user_id=current_user.id,
+        actor_email=current_user.email,
+        actor_role=current_user.role,
+        action=AuditAction.STOP_SKIPPED,
+        description="Durak atlandı.",
+        entity_type="stop",
+        entity_id=stop_id,
+        metadata={"route_id": route_id},
+    )
+
     return to_route_out(route_doc)
 
 
@@ -274,6 +378,19 @@ async def schedule_retry_stop(
     stop_id: str,
     current_user: CurrentUser = Depends(require_role(UserRole.DRIVER)),
     service: StopService = Depends(get_stop_service),
+    audit_service: AuditLogService = Depends(get_audit_log_service),
 ):
     route_doc = await service.schedule_retry_stop(route_id, stop_id, current_user.id)
+
+    await audit_service.record(
+        actor_user_id=current_user.id,
+        actor_email=current_user.email,
+        actor_role=current_user.role,
+        action=AuditAction.STOP_RETRY_SCHEDULED,
+        description="Durak için tekrar deneme planlandı.",
+        entity_type="stop",
+        entity_id=stop_id,
+        metadata={"route_id": route_id},
+    )
+
     return to_route_out(route_doc)
