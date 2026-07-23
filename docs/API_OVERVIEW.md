@@ -2,6 +2,8 @@
 
 All endpoints are under the `/api/v1` prefix and use JWT bearer authentication (`Authorization: Bearer <token>`), except `register` and `login`. Full interactive documentation with request/response schemas is available at `/docs` (Swagger UI) once the API is running.
 
+A ready-to-use Postman collection with every endpoint below is available in [`postman/`](../postman/) — see the "Postman Collection" section in [README.md](../README.md) for how to import and use it.
+
 ## Auth (`/api/v1/auth`)
 
 Register a new user (admin or driver), log in to get a JWT, and read the currently logged-in user's profile.

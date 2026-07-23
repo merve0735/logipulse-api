@@ -103,6 +103,16 @@ Demo accounts (password in parentheses):
 | Driver | `driver2@logipulse.demo` | `Driver12345` |
 | Driver | `driver3@logipulse.demo` (no saved location, shown as "no location" on the map) | `Driver12345` |
 
+## Postman Collection
+
+A ready-to-use Postman collection covers every endpoint, grouped by module (Auth, Vehicles, Routes, Stops, Tracking, Dashboard, Alerts, Recommendations, Reports, Imports, Audit Logs).
+
+1. **Import the collection**: Postman → Import → select `postman/LogiPulse.postman_collection.json`.
+2. **Import the environment**: Postman → Import → select `postman/LogiPulse.local.postman_environment.json`, then select "LogiPulse Local" as the active environment (top-right dropdown).
+3. **Seed demo data first** (see the section above), so the requests have real data to work with.
+4. **Run "Login Admin"** (in the Auth folder) — this saves the admin token automatically. Run **"Login Driver"** the same way for driver requests.
+5. From there, run any other request — most admin/driver requests use the saved tokens automatically, and a few requests (Create Vehicle, Create Route, List Drivers) automatically save IDs (`vehicle_id`, `route_id`, `stop_id`, `driver_id`) for the requests that follow them.
+
 ## Running Tests
 
 Tests use a separate database (`logipulse_test`) and never touch the real data.

@@ -1,0 +1,808 @@
+{
+  "info": {
+    "_postman_id": "d5fedc33-0632-4d5c-8e87-361914e72396",
+    "name": "LogiPulse API",
+    "description": "LogiPulse backend API requests, grouped by module. Run the demo seed script first (`docker compose exec api python -m app.scripts.seed_demo_data`), then run Login Admin / Login Driver before anything else, so admin_token/driver_token are set automatically.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Simple unauthenticated check that the API is running."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register Admin",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Postman Admin\",\n  \"email\": \"postman.admin@logipulse.demo\",\n  \"password\": \"Test1234\",\n  \"role\": \"admin\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "register"]
+            },
+            "description": "Creates a fresh admin account for testing the register endpoint. The seeded demo admin already exists, so this uses a different email to avoid a 400 (email already registered)."
+          },
+          "response": []
+        },
+        {
+          "name": "Register Driver",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Postman Driver\",\n  \"email\": \"postman.driver@logipulse.demo\",\n  \"password\": \"Test1234\",\n  \"role\": \"driver\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "register"]
+            },
+            "description": "Creates a fresh driver account for testing the register endpoint."
+          },
+          "response": []
+        },
+        {
+          "name": "Login Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Login successful\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const data = pm.response.json();",
+                  "if (data.access_token) {",
+                  "    pm.environment.set(\"admin_token\", data.access_token);",
+                  "    console.log(\"admin_token saved\");",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{admin_email}}\",\n  \"password\": \"{{admin_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            },
+            "description": "Logs in with the seeded demo admin account and saves the token to admin_token automatically. Run this before any other admin request."
+          },
+          "response": []
+        },
+        {
+          "name": "Login Driver",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Login successful\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const data = pm.response.json();",
+                  "if (data.access_token) {",
+                  "    pm.environment.set(\"driver_token\", data.access_token);",
+                  "    console.log(\"driver_token saved\");",
+                  "",
+                  "    // Save this driver's own id too, decoded straight from the token.",
+                  "    // This keeps Create Route / Assign Driver pointed at the SAME driver",
+                  "    // that driver_token belongs to, even if other drivers exist in the database",
+                  "    // and 'List Drivers' (Users folder) later saves a different id into driver_id.",
+                  "    const payload = JSON.parse(atob(data.access_token.split('.')[1]));",
+                  "    if (payload.sub) {",
+                  "        pm.environment.set(\"driver_id\", payload.sub);",
+                  "        console.log(\"driver_id saved from token: \" + payload.sub);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{driver_email}}\",\n  \"password\": \"{{driver_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            },
+            "description": "Logs in with the seeded demo driver1 account, saves the token to driver_token, and saves driver1's own id to driver_id (decoded from the token) so Create Route / Assign Driver stay in sync with driver_token's owner. Run this before any other driver request."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "List Drivers",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Drivers listed\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const data = pm.response.json();",
+                  "if (Array.isArray(data) && data.length > 0) {",
+                  "    pm.environment.set(\"driver_id\", data[0].id);",
+                  "    console.log(\"driver_id saved: \" + data[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/drivers",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users", "drivers"]
+            },
+            "description": "Admin-only. Lists all users with the driver role, and saves the first one as driver_id. Note: this overwrites driver_id, which Login Driver also sets. Run this AFTER the Routes/Stops requests below if you want to keep testing with driver1, or run it any time if you just want to inspect the endpoint."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Vehicles",
+      "item": [
+        {
+          "name": "Create Vehicle",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Vehicle created\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "const data = pm.response.json();",
+                  "if (data.id) {",
+                  "    pm.environment.set(\"vehicle_id\", data.id);",
+                  "    console.log(\"vehicle_id saved: \" + data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"plate_number\": \"07 PST 001\",\n  \"vehicle_type\": \"electric_van\",\n  \"capacity_kg\": 500,\n  \"average_cost_per_km\": 4,\n  \"average_carbon_per_km\": 0.05,\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/vehicles",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "vehicles"]
+            },
+            "description": "Admin-only. Creates a vehicle and saves its id as vehicle_id for use in the Routes requests below."
+          },
+          "response": []
+        },
+        {
+          "name": "List Vehicles",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/vehicles",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "vehicles"]
+            },
+            "description": "Admin-only. Lists the whole fleet."
+          },
+          "response": []
+        },
+        {
+          "name": "Recommend Best Vehicle",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"distance_km\": 50,\n  \"expected_revenue\": 750,\n  \"package_weight_kg\": 150\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/vehicles/recommend-best",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "vehicles", "recommend-best"]
+            },
+            "description": "Admin-only. Returns the best active vehicle for the given trip, plus alternatives. Requires at least one active vehicle (the seed script creates three)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Routes",
+      "item": [
+        {
+          "name": "Create Route",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Route created\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "const data = pm.response.json();",
+                  "if (data.id) {",
+                  "    pm.environment.set(\"route_id\", data.id);",
+                  "    console.log(\"route_id saved: \" + data.id);",
+                  "}",
+                  "if (Array.isArray(data.stops) && data.stops.length > 0) {",
+                  "    pm.environment.set(\"stop_id\", data.stops[0].id);",
+                  "    console.log(\"stop_id saved: \" + data.stops[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"origin\": \"Postman Depo\",\n  \"destination\": \"Postman Teslimat Bölgesi\",\n  \"distance_km\": 40,\n  \"vehicle_id\": \"{{vehicle_id}}\",\n  \"expected_revenue\": 1200,\n  \"assigned_driver_id\": \"{{driver_id}}\",\n  \"stops\": [\n    {\n      \"sequence_number\": 1,\n      \"customer_name\": \"Ayse Yilmaz\",\n      \"address\": \"Ornek Mah. No:1\",\n      \"package_weight_kg\": 10\n    },\n    {\n      \"sequence_number\": 2,\n      \"customer_name\": \"Mehmet Demir\",\n      \"address\": \"Ornek Mah. No:2\",\n      \"package_weight_kg\": 15\n    },\n    {\n      \"sequence_number\": 3,\n      \"customer_name\": \"Zeynep Kaya\",\n      \"address\": \"Ornek Mah. No:3\",\n      \"package_weight_kg\": 8\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/routes",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "routes"]
+            },
+            "description": "Admin-only. Creates a multi-stop route. Uses vehicle_id and driver_id from earlier requests (run Create Vehicle and List Drivers first). Saves route_id and the first stop's id (stop_id)."
+          },
+          "response": []
+        },
+        {
+          "name": "List Routes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/routes",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "routes"]
+            },
+            "description": "Admin sees all routes; returns the paginated {items, total, limit, offset, has_more} format."
+          },
+          "response": []
+        },
+        {
+          "name": "List Routes With Filters",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/routes?status=pending&sort_by=created_at&sort_order=desc&limit=10&offset=0",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "routes"],
+              "query": [
+                { "key": "status", "value": "pending" },
+                { "key": "sort_by", "value": "created_at" },
+                { "key": "sort_order", "value": "desc" },
+                { "key": "limit", "value": "10" },
+                { "key": "offset", "value": "0" }
+              ]
+            },
+            "description": "Same endpoint as List Routes, with filtering, sorting, and pagination query parameters. Other available filters: vehicle_type, vehicle_id, assigned_driver_id, min_profit, max_profit, min_carbon, max_carbon, search."
+          },
+          "response": []
+        },
+        {
+          "name": "Assign Driver",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"driver_id\": \"{{driver_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/routes/{{route_id}}/assign-driver",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "routes", "{{route_id}}", "assign-driver"]
+            },
+            "description": "Admin-only. Assigns a driver and moves the route from pending to assigned."
+          },
+          "response": []
+        },
+        {
+          "name": "Start Route",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{driver_token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/routes/{{route_id}}/start",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "routes", "{{route_id}}", "start"]
+            },
+            "description": "Driver-only. Moves the route from assigned to in_progress. The logged-in driver must be the one assigned to this route (run Assign Driver with driver_id first)."
+          },
+          "response": []
+        },
+        {
+          "name": "Deliver Route",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{driver_token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/routes/{{route_id}}/deliver",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "routes", "{{route_id}}", "deliver"]
+            },
+            "description": "Driver-only. Moves the route from in_progress to delivered."
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Route",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/routes/{{route_id}}/cancel",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "routes", "{{route_id}}", "cancel"]
+            },
+            "description": "Admin-only. Cancels a route (allowed from pending, assigned, or in_progress)."
+          },
+          "response": []
+        },
+        {
+          "name": "My Routes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{driver_token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/routes/my-routes",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "routes", "my-routes"]
+            },
+            "description": "Driver-only. Lists only the routes assigned to the logged-in driver."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Stops",
+      "item": [
+        {
+          "name": "List Route Stops",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/routes/{{route_id}}/stops",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "routes", "{{route_id}}", "stops"]
+            },
+            "description": "Admin can view stops for any route; a driver can only view stops for their own assigned route."
+          },
+          "response": []
+        },
+        {
+          "name": "Deliver Stop With Proof",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{driver_token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recipient_name\": \"Ayse Yilmaz\",\n  \"recipient_signature_text\": \"Ayse Yilmaz onayi\",\n  \"delivery_photo_url\": \"https://example.com/photo.jpg\",\n  \"delivered_latitude\": 36.8841,\n  \"delivered_longitude\": 30.7056,\n  \"delivery_note\": \"Kapida teslim edildi.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/routes/{{route_id}}/stops/{{stop_id}}/deliver",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "routes", "{{route_id}}", "stops", "{{stop_id}}", "deliver"]
+            },
+            "description": "Driver-only, and only for the driver's own route. Marks the stop as delivered with proof of delivery. recipient_name is required."
+          },
+          "response": []
+        },
+        {
+          "name": "Fail Stop",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{driver_token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"failure_reason\": \"Musteri adreste bulunamadi\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/routes/{{route_id}}/stops/{{stop_id}}/fail",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "routes", "{{route_id}}", "stops", "{{stop_id}}", "fail"]
+            },
+            "description": "Driver-only. Marks the stop as failed with a reason."
+          },
+          "response": []
+        },
+        {
+          "name": "Skip Stop",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{driver_token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/routes/{{route_id}}/stops/{{stop_id}}/skip",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "routes", "{{route_id}}", "stops", "{{stop_id}}", "skip"]
+            },
+            "description": "Driver-only. Marks the stop as skipped."
+          },
+          "response": []
+        },
+        {
+          "name": "Schedule Retry",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{driver_token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/routes/{{route_id}}/stops/{{stop_id}}/schedule-retry",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "routes", "{{route_id}}", "stops", "{{stop_id}}", "schedule-retry"]
+            },
+            "description": "Driver-only. Marks the stop as scheduled for retry."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Tracking",
+      "item": [
+        {
+          "name": "Update My Driver Location",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{driver_token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"latitude\": 36.8841,\n  \"longitude\": 30.7056\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/tracking/me/location",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tracking", "me", "location"]
+            },
+            "description": "Driver-only. Updates the logged-in driver's current location."
+          },
+          "response": []
+        },
+        {
+          "name": "List Driver Locations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/tracking/drivers",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tracking", "drivers"]
+            },
+            "description": "Admin-only. Lists every driver's last known location and current active route, if any."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/dashboard/summary",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "dashboard", "summary"]
+            },
+            "description": "Admin-only. Fleet-wide financial, carbon, and delivery-quality summary."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Alerts",
+      "item": [
+        {
+          "name": "Get Alerts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/alerts",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "alerts"]
+            },
+            "description": "Admin-only. Rule-based warnings generated from current route/stop data."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Recommendations",
+      "item": [
+        {
+          "name": "Get Recommendations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/recommendations",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "recommendations"]
+            },
+            "description": "Admin-only. Rule-based improvement suggestions generated from current route/stop data."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        {
+          "name": "Get Sustainability Report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/reports/sustainability",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "reports", "sustainability"]
+            },
+            "description": "Admin-only. Combined financial/carbon/risk/recommendation report as JSON."
+          },
+          "response": []
+        },
+        {
+          "name": "Download Sustainability PDF",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/reports/sustainability/pdf",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "reports", "sustainability", "pdf"]
+            },
+            "description": "Admin-only. Same report as a downloadable PDF file. Use Postman's 'Send and Download' to save it."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Imports",
+      "item": [
+        {
+          "name": "Import Route CSV",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": [], "description": "Select a local CSV file. Required columns: sequence_number, customer_name, address. Optional columns: customer_phone, latitude, longitude, package_weight_kg, delivery_note." },
+                { "key": "route_name", "value": "Postman CSV Rota", "type": "text" },
+                { "key": "vehicle_id", "value": "{{vehicle_id}}", "type": "text" },
+                { "key": "expected_revenue", "value": "800", "type": "text" },
+                { "key": "distance_km", "value": "60", "type": "text" },
+                { "key": "assigned_driver_id", "value": "{{driver_id}}", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/imports/routes/csv",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "imports", "routes", "csv"]
+            },
+            "description": "Admin-only. IMPORTANT: the 'file' field has no file attached by default — before sending, click the 'file' row's value cell and choose a CSV file from your computer. The CSV needs a header row with at least sequence_number, customer_name, address."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Audit Logs",
+      "item": [
+        {
+          "name": "List Audit Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/audit-logs",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "audit-logs"]
+            },
+            "description": "Admin-only. Paginated log of important actions taken in the system."
+          },
+          "response": []
+        },
+        {
+          "name": "List Audit Logs With Filters",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/audit-logs?action=vehicle_created&actor_role=admin&limit=10&offset=0",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "audit-logs"],
+              "query": [
+                { "key": "action", "value": "vehicle_created" },
+                { "key": "actor_role", "value": "admin" },
+                { "key": "limit", "value": "10" },
+                { "key": "offset", "value": "0" }
+              ]
+            },
+            "description": "Same endpoint as List Audit Logs, filtered by action and actor_role. entity_type is also available as a filter."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
