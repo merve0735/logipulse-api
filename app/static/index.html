@@ -143,16 +143,105 @@
     font-size: 13px;
     color: var(--muted);
   }
+
+  #app-shell { display: flex; min-height: 100vh; }
+  #sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    background: #111827;
+    color: #e5e7eb;
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+  .sidebar-header {
+    padding: 20px 20px 16px;
+    font-size: 18px;
+    font-weight: 700;
+    color: white;
+    border-bottom: 1px solid #1f2937;
+  }
+  #sidebar-nav { display: flex; flex-direction: column; padding: 12px 0; }
+  .sidebar-link {
+    background: transparent;
+    border: none;
+    color: #cbd5e1;
+    text-align: left;
+    padding: 10px 20px;
+    font-size: 13px;
+    cursor: pointer;
+    border-radius: 0;
+    margin-top: 0;
+  }
+  .sidebar-link:hover { background: #1f2937; color: white; }
+  .sidebar-link.active { background: var(--primary); color: white; font-weight: 600; }
+  #app-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  #topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--card-bg);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .topbar-left { display: flex; align-items: center; gap: 12px; }
+  .topbar-title { font-weight: 700; font-size: 16px; color: var(--primary-dark); }
+  #hamburger-btn {
+    display: none;
+    margin-top: 0;
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 6px 10px;
+    font-size: 16px;
+  }
+  #topbar #dashboard-card { background: transparent; border: none; padding: 0; margin: 0; }
+  #page-content {
+    flex: 1;
+    padding: 20px;
+    display: grid;
+    gap: 20px;
+    max-width: 1100px;
+    width: 100%;
+    align-content: start;
+  }
+  #sidebar-overlay { display: none; }
+
+  @media (max-width: 860px) {
+    #hamburger-btn { display: inline-block; }
+    #sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      transform: translateX(-100%);
+      transition: transform 0.2s ease;
+      z-index: 30;
+    }
+    #sidebar.open { transform: translateX(0); }
+    #sidebar-overlay.open {
+      display: block;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 20;
+    }
+  }
 </style>
 </head>
 <body>
 
-<header>
+<header id="landing-header">
   <h1>LogiPulse — Demo Paneli</h1>
   <p>Bu sayfa, backend API'yi görsel olarak test etmek için hazırlanmıştır (gerçek ürün arayüzü değildir).</p>
 </header>
 
-<div class="container">
+<div class="container" id="auth-container">
 
   <div class="card" id="auth-card">
     <div class="tabs">
@@ -191,22 +280,37 @@
       <div id="register-msg" class="msg"></div>
     </div>
   </div>
+</div>
 
-  <div class="card hidden" id="dashboard-card">
-    <div class="userbar">
-      <span id="user-info"></span>
-      <button class="secondary" onclick="logout()">Çıkış Yap</button>
-    </div>
-  </div>
+<div id="app-shell" class="hidden">
+  <div id="sidebar-overlay" onclick="closeMobileSidebar()"></div>
+  <aside id="sidebar">
+    <div class="sidebar-header">LogiPulse</div>
+    <nav id="sidebar-nav"></nav>
+  </aside>
+  <div id="app-main">
+    <header id="topbar">
+      <div class="topbar-left">
+        <button id="hamburger-btn" onclick="toggleMobileSidebar()" aria-label="Menü">☰</button>
+        <span class="topbar-title">LogiPulse</span>
+      </div>
+      <div class="card hidden" id="dashboard-card">
+        <div class="userbar">
+          <span id="user-info"></span>
+          <button class="secondary" onclick="logout()">Çıkış Yap</button>
+        </div>
+      </div>
+    </header>
+    <main id="page-content">
 
-  <div class="card hidden" id="tracking-map-card">
+  <div class="card hidden" id="tracking-map-card" data-page="kurye-haritasi">
     <h2>Canlı Kurye Haritası</h2>
     <button class="secondary" onclick="loadDriverLocations()">Konumları Yenile</button>
     <div id="tracking-map" style="height: 360px; border-radius: 8px; margin-top: 10px;"></div>
     <div id="tracking-no-location-list" style="margin-top: 10px; font-size: 13px; color: var(--muted);"></div>
   </div>
 
-  <div class="card hidden" id="driver-location-card">
+  <div class="card hidden" id="driver-location-card" data-page="konum-guncelle">
     <h2>Konumumu Güncelle</h2>
     <div class="row">
       <div>
@@ -222,7 +326,7 @@
     <div id="my-location-msg" class="msg"></div>
   </div>
 
-  <div class="card hidden" id="admin-summary-card">
+  <div class="card hidden" id="admin-summary-card" data-page="yonetici-ozeti">
     <h2>Yönetici Özeti</h2>
     <div id="summary-empty-msg" class="msg hidden">Henüz raporlanacak rota yok.</div>
     <div id="summary-content" class="hidden">
@@ -325,19 +429,19 @@
     </div>
   </div>
 
-  <div class="card hidden" id="admin-alerts-card">
+  <div class="card hidden" id="admin-alerts-card" data-page="uyarilar">
     <h2>Uyarılar</h2>
     <div id="alerts-empty-msg" class="msg hidden">Şu anda aktif uyarı yok.</div>
     <div id="alerts-list"></div>
   </div>
 
-  <div class="card hidden" id="admin-recommendations-card">
+  <div class="card hidden" id="admin-recommendations-card" data-page="oneriler">
     <h2>Öneriler</h2>
     <div id="recommendations-empty-msg" class="msg hidden">Şu anda öneri bulunmuyor.</div>
     <div id="recommendations-list"></div>
   </div>
 
-  <div class="card hidden" id="admin-report-card">
+  <div class="card hidden" id="admin-report-card" data-page="rapor">
     <h2 id="report-title">Sürdürülebilirlik Raporu</h2>
     <div id="report-generated-at" style="font-size: 12px; color: var(--muted); margin-bottom: 8px;"></div>
     <div id="report-executive-summary" style="margin-bottom: 12px;"></div>
@@ -477,7 +581,7 @@
     <button onclick="downloadSustainabilityReportPdf()" style="margin-top: 16px;">PDF İndir</button>
   </div>
 
-  <div class="card hidden" id="stats-card">
+  <div class="card hidden" id="stats-card" data-page="rotalar">
     <h2>Özet</h2>
     <div class="stat">
       <div class="box">
@@ -495,7 +599,7 @@
     </div>
   </div>
 
-  <div class="card hidden" id="vehicle-recommendation-card">
+  <div class="card hidden" id="vehicle-recommendation-card" data-page="arac-onerisi">
     <h2>Akıllı Araç Önerisi</h2>
     <div class="row">
       <div>
@@ -524,7 +628,7 @@
     </div>
   </div>
 
-  <div class="card hidden" id="create-route-card">
+  <div class="card hidden" id="create-route-card" data-page="yeni-rota">
     <h2>Yeni Rota Oluştur</h2>
     <div id="no-vehicles-msg" class="msg error hidden">Önce bir araç oluşturmalısınız.</div>
     <div id="route-form-fields">
@@ -562,7 +666,7 @@
     <div id="route-msg" class="msg"></div>
   </div>
 
-  <div class="card hidden" id="csv-import-card">
+  <div class="card hidden" id="csv-import-card" data-page="csv-ice-aktar">
     <h2>CSV ile Rota İçe Aktar</h2>
     <div class="row">
       <div>
@@ -615,7 +719,7 @@
     </div>
   </div>
 
-  <div class="card hidden" id="routes-card">
+  <div class="card hidden" id="routes-card" data-page="rotalar">
     <h2>Rotalar</h2>
 
     <div class="row">
@@ -713,6 +817,61 @@
     </div>
   </div>
 
+  <div class="card hidden" id="vehicles-card" data-page="araclar">
+    <h2>Araçlar</h2>
+    <button class="secondary" onclick="loadVehiclesList()">Yenile</button>
+    <table>
+      <thead>
+        <tr>
+          <th>Plaka</th>
+          <th>Tip</th>
+          <th>Kapasite (kg)</th>
+          <th>Maliyet/km (TL)</th>
+          <th>Karbon/km (kg)</th>
+          <th>Aktif</th>
+        </tr>
+      </thead>
+      <tbody id="vehicles-tbody"></tbody>
+    </table>
+
+    <h3 style="font-size: 14px; margin: 20px 0 8px;">Yeni Araç Ekle</h3>
+    <div class="row">
+      <div>
+        <label>Plaka</label>
+        <input type="text" id="new-vehicle-plate" placeholder="34 ABC 123">
+      </div>
+      <div>
+        <label>Araç Tipi</label>
+        <select id="new-vehicle-type">
+          <option value="electric_van">Elektrikli Van</option>
+          <option value="diesel_van">Dizel Van</option>
+          <option value="motorcycle">Motosiklet</option>
+        </select>
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Kapasite (kg)</label>
+        <input type="number" id="new-vehicle-capacity" placeholder="800">
+      </div>
+      <div>
+        <label>Maliyet (TL/km)</label>
+        <input type="number" step="any" id="new-vehicle-cost" placeholder="2.5">
+      </div>
+      <div>
+        <label>Karbon (kg/km)</label>
+        <input type="number" step="any" id="new-vehicle-carbon" placeholder="0.05">
+      </div>
+    </div>
+    <label style="display: flex; align-items: center; gap: 6px; margin-top: 10px;">
+      <input type="checkbox" id="new-vehicle-active" checked style="width: auto;"> Aktif
+    </label>
+    <button onclick="createVehicle()">Araç Ekle</button>
+    <div id="vehicle-create-msg" class="msg"></div>
+  </div>
+
+    </main>
+  </div>
 </div>
 
 <script>
@@ -721,6 +880,125 @@
   let currentUser = null;
   let routesOffset = 0;
   const ROUTES_LIMIT = 20;
+
+  const ADMIN_MENU = [
+    { key: 'yonetici-ozeti', label: 'Yönetici Özeti' },
+    { key: 'arac-onerisi', label: 'Akıllı Araç Önerisi' },
+    { key: 'rotalar', label: 'Rotalar' },
+    { key: 'yeni-rota', label: 'Yeni Rota Oluştur' },
+    { key: 'csv-ice-aktar', label: 'CSV İçe Aktar' },
+    { key: 'araclar', label: 'Araçlar' },
+    { key: 'kurye-haritasi', label: 'Kurye Haritası' },
+    { key: 'uyarilar', label: 'Uyarılar' },
+    { key: 'oneriler', label: 'Öneriler' },
+    { key: 'rapor', label: 'Sürdürülebilirlik Raporu' },
+  ];
+
+  const DRIVER_MENU = [
+    { key: 'rotalar', label: 'Rotalarım' },
+    { key: 'konum-guncelle', label: 'Konumumu Güncelle' },
+  ];
+
+  function buildSidebar(role) {
+    const menu = role === 'admin' ? ADMIN_MENU : DRIVER_MENU;
+    const nav = document.getElementById('sidebar-nav');
+    nav.innerHTML = '';
+    menu.forEach((item) => {
+      const link = document.createElement('button');
+      link.type = 'button';
+      link.className = 'sidebar-link';
+      link.dataset.page = item.key;
+      link.textContent = item.label;
+      link.onclick = () => showPage(item.key);
+      nav.appendChild(link);
+    });
+  }
+
+  function showPage(pageKey) {
+    document.querySelectorAll('#page-content [data-page]').forEach((el) => el.classList.add('hidden'));
+    document.querySelectorAll(`#page-content [data-page="${pageKey}"]`).forEach((el) => el.classList.remove('hidden'));
+
+    document.querySelectorAll('.sidebar-link').forEach((el) => {
+      el.classList.toggle('active', el.dataset.page === pageKey);
+    });
+
+    if (pageKey === 'yonetici-ozeti') loadDashboardSummary();
+    else if (pageKey === 'rotalar') loadRoutes();
+    else if (pageKey === 'araclar') loadVehiclesList();
+    else if (pageKey === 'kurye-haritasi') loadDriverLocations();
+    else if (pageKey === 'uyarilar') loadAlerts();
+    else if (pageKey === 'oneriler') loadRecommendations();
+    else if (pageKey === 'rapor') loadSustainabilityReport();
+
+    closeMobileSidebar();
+  }
+
+  function toggleMobileSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebar-overlay').classList.toggle('open');
+  }
+
+  function closeMobileSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebar-overlay').classList.remove('open');
+  }
+
+  async function loadVehiclesList() {
+    const res = await fetch(`${API_BASE}/api/v1/vehicles`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return;
+    const vehicles = await res.json();
+    const tbody = document.getElementById('vehicles-tbody');
+    tbody.innerHTML = vehicles
+      .map(
+        (v) => `
+      <tr>
+        <td>${v.plate_number}</td>
+        <td><span class="badge">${vehicleLabels[v.vehicle_type] || v.vehicle_type}</span></td>
+        <td>${v.capacity_kg}</td>
+        <td>${v.average_cost_per_km}</td>
+        <td>${v.average_carbon_per_km}</td>
+        <td>${v.is_active ? 'Evet' : 'Hayır'}</td>
+      </tr>
+    `
+      )
+      .join('');
+  }
+
+  async function createVehicle() {
+    const msg = document.getElementById('vehicle-create-msg');
+    msg.textContent = '';
+    msg.className = 'msg';
+    const body = {
+      plate_number: document.getElementById('new-vehicle-plate').value,
+      vehicle_type: document.getElementById('new-vehicle-type').value,
+      capacity_kg: parseFloat(document.getElementById('new-vehicle-capacity').value),
+      average_cost_per_km: parseFloat(document.getElementById('new-vehicle-cost').value),
+      average_carbon_per_km: parseFloat(document.getElementById('new-vehicle-carbon').value),
+      is_active: document.getElementById('new-vehicle-active').checked,
+    };
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/vehicles`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Araç oluşturulamadı');
+      msg.textContent = `Araç eklendi: ${data.plate_number}`;
+      msg.className = 'msg success';
+      document.getElementById('new-vehicle-plate').value = '';
+      loadVehiclesList();
+      loadVehicleOptions();
+    } catch (err) {
+      msg.textContent = err.message;
+      msg.className = 'msg error';
+    }
+  }
 
   const vehicleLabels = {
     electric_van: 'Elektrikli Van',
@@ -837,7 +1115,9 @@
     }
     currentUser = await res.json();
 
-    document.getElementById('auth-card').classList.add('hidden');
+    document.getElementById('auth-container').classList.add('hidden');
+    document.getElementById('landing-header').classList.add('hidden');
+    document.getElementById('app-shell').classList.remove('hidden');
     document.getElementById('dashboard-card').classList.remove('hidden');
     document.getElementById('stats-card').classList.remove('hidden');
     document.getElementById('routes-card').classList.remove('hidden');
@@ -879,6 +1159,9 @@
 
     routesOffset = 0;
     loadRoutes();
+
+    buildSidebar(currentUser.role);
+    showPage(currentUser.role === 'admin' ? 'yonetici-ozeti' : 'rotalar');
   }
 
   async function loadAlerts() {
@@ -1166,7 +1449,10 @@
     currentUser = null;
     routesOffset = 0;
     localStorage.removeItem('logipulse_token');
+    document.getElementById('landing-header').classList.remove('hidden');
+    document.getElementById('auth-container').classList.remove('hidden');
     document.getElementById('auth-card').classList.remove('hidden');
+    document.getElementById('app-shell').classList.add('hidden');
     document.getElementById('dashboard-card').classList.add('hidden');
     document.getElementById('stats-card').classList.add('hidden');
     document.getElementById('admin-summary-card').classList.add('hidden');
@@ -1179,6 +1465,8 @@
     document.getElementById('tracking-map-card').classList.add('hidden');
     document.getElementById('driver-location-card').classList.add('hidden');
     document.getElementById('routes-card').classList.add('hidden');
+    document.getElementById('sidebar-nav').innerHTML = '';
+    closeMobileSidebar();
     stopTrackingAutoRefresh();
   }
 
