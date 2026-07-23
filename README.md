@@ -82,6 +82,27 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for details on why this structu
    http://localhost:8000/demo/
    ```
 
+## Demo Seed Data
+
+Instead of creating everything by hand, one command fills the database with realistic demo data — enough for the dashboard, alerts, recommendations, sustainability report, map, audit logs, and proof of delivery screens to all show meaningful content right away.
+
+```bash
+docker compose exec api python -m app.scripts.seed_demo_data
+```
+
+This creates demo users, a small fleet (electric van, diesel van, motorcycle, and one inactive vehicle), and five routes covering different scenarios (profitable, loss-making, high-carbon, completed, cancelled) with their stops. It also writes one audit log entry (`demo_seeded`) so the seeding action itself is traceable.
+
+The script is safe to run more than once: users are matched by email, vehicles by plate number, and routes by name, so re-running it does not create duplicates. It never deletes or wipes existing data — it only adds what's missing.
+
+Demo accounts (password in parentheses):
+
+| Role | Email | Password |
+| --- | --- | --- |
+| Admin | `admin@logipulse.demo` | `Demo1234` |
+| Driver | `driver1@logipulse.demo` | `Driver12345` |
+| Driver | `driver2@logipulse.demo` | `Driver12345` |
+| Driver | `driver3@logipulse.demo` (no saved location, shown as "no location" on the map) | `Driver12345` |
+
 ## Running Tests
 
 Tests use a separate database (`logipulse_test`) and never touch the real data.

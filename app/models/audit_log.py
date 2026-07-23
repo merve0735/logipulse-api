@@ -24,6 +24,7 @@ class AuditAction(str, Enum):
     DRIVER_LOCATION_UPDATED = "driver_location_updated"
     CSV_ROUTE_IMPORTED = "csv_route_imported"
     SUSTAINABILITY_PDF_DOWNLOADED = "sustainability_pdf_downloaded"
+    DEMO_SEEDED = "demo_seeded"
 
 
 class AuditLogOut(BaseModel):
