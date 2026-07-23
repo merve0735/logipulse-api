@@ -28,7 +28,9 @@ Leaflet is a lightweight, free mapping library, and OpenStreetMap tiles don't re
 
 ## Why rule-based recommendations before AI/RAG?
 
-Alerts and recommendations are currently generated from simple, explainable rules (thresholds and counts over route/stop data — for example "profit is negative" or "carbon is above X kg"). This was chosen first because it's predictable, easy to test, and easy to explain to a non-technical user ("why did I get this alert?" always has a clear answer). An AI/RAG-based layer could be added later on top of this same data to generate more nuanced suggestions, but the rule-based version is a solid, transparent baseline to build on rather than starting with something harder to verify.
+Alerts and recommendations are generated from simple, explainable rules (thresholds and counts over route/stop data — for example "profit is negative" or "carbon is above X kg"). This was chosen first because it's predictable, easy to test, and easy to explain to a non-technical user ("why did I get this alert?" always has a clear answer). This rule-based layer was deliberately built *before* adding any AI, so LogiPulse had a solid, transparent, and testable baseline to fall back on.
+
+The Gemini-powered **AI Advisor** was added on top of that baseline, not instead of it. The rule-based alerts/recommendations still run exactly as before and remain the source of truth; the AI Advisor is an additional, free-form layer for questions that don't fit a fixed rule ("why", "what should we do about X"). It only ever reads the same summarized data the rest of the app already computes (dashboard, alerts, recommendations, report summaries) — it does not read raw database records, and it cannot write to the database. This keeps the AI's answers grounded in real numbers instead of open-ended guessing, and keeps the blast radius of an AI mistake small (a wrong answer to a question, not a wrong action taken on the data).
 
 ## Why audit logs?
 

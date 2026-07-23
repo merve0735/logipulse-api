@@ -935,6 +935,30 @@
     </div>
   </div>
 
+  <div class="card hidden" id="ai-advisor-card" data-page="ai-danisman">
+    <h2>AI Danışman</h2>
+    <p style="color: var(--muted); font-size: 13px;">
+      LogiPulse verilerinize (özet, uyarılar, öneriler, rapor) dayanarak soru sorabilirsiniz.
+    </p>
+
+    <label>Sorunuz</label>
+    <textarea id="ai-question-input" rows="3" placeholder="Örn: Karbon emisyonumuz neden yüksek?"></textarea>
+
+    <div style="margin: 8px 0; display: flex; flex-wrap: wrap; gap: 6px;">
+      <button class="secondary" onclick="askAiExampleQuestion('Karbon emisyonumuz neden yüksek?')">Karbon emisyonumuz neden yüksek?</button>
+      <button class="secondary" onclick="askAiExampleQuestion('Hangi operasyonlar zarar ediyor?')">Hangi operasyonlar zarar ediyor?</button>
+      <button class="secondary" onclick="askAiExampleQuestion('Teslimat başarı oranımız nasıl iyileştirilebilir?')">Teslimat başarı oranımız nasıl iyileştirilebilir?</button>
+      <button class="secondary" onclick="askAiExampleQuestion('Elektrikli araç kullanımını artırmalı mıyız?')">Elektrikli araç kullanımını artırmalı mıyız?</button>
+    </div>
+
+    <button onclick="askAiAdvisor()">AI'a Sor</button>
+
+    <div id="ai-loading-msg" class="msg hidden">Yanıt bekleniyor...</div>
+    <div id="ai-error-msg" class="msg error hidden"></div>
+
+    <div id="ai-answer-card" class="hidden" style="margin-top: 12px; padding: 12px; border: 1px solid var(--border); border-radius: 8px; white-space: pre-wrap;"></div>
+  </div>
+
     </main>
   </div>
 </div>
@@ -958,6 +982,7 @@
     { key: 'oneriler', label: 'Öneriler' },
     { key: 'rapor', label: 'Sürdürülebilirlik Raporu' },
     { key: 'islem-gecmisi', label: 'İşlem Geçmişi' },
+    { key: 'ai-danisman', label: 'AI Danışman' },
   ];
 
   const DRIVER_MENU = [
@@ -1155,6 +1180,53 @@
     document.getElementById('audit-logs-total-label').textContent = `Toplam ${data.total} kayıt`;
     document.getElementById('audit-logs-prev-btn').disabled = auditLogsOffset === 0;
     document.getElementById('audit-logs-next-btn').disabled = !data.has_more;
+  }
+
+  function askAiExampleQuestion(question) {
+    document.getElementById('ai-question-input').value = question;
+    askAiAdvisor();
+  }
+
+  async function askAiAdvisor() {
+    const question = document.getElementById('ai-question-input').value.trim();
+    const loadingMsg = document.getElementById('ai-loading-msg');
+    const errorMsg = document.getElementById('ai-error-msg');
+    const answerCard = document.getElementById('ai-answer-card');
+
+    errorMsg.classList.add('hidden');
+    answerCard.classList.add('hidden');
+
+    if (!question) {
+      errorMsg.textContent = 'Lütfen bir soru yazın.';
+      errorMsg.classList.remove('hidden');
+      return;
+    }
+
+    loadingMsg.classList.remove('hidden');
+
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/ai/advisor`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ question }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.detail || 'AI Danışman yanıt veremedi.');
+      }
+
+      answerCard.textContent = data.answer;
+      answerCard.classList.remove('hidden');
+    } catch (err) {
+      errorMsg.textContent = err.message;
+      errorMsg.classList.remove('hidden');
+    } finally {
+      loadingMsg.classList.add('hidden');
+    }
   }
 
   const vehicleLabels = {

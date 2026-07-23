@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from app.api.v1.ai import router as ai_router
 from app.api.v1.alerts import router as alerts_router
 from app.api.v1.audit_logs import router as audit_logs_router
 from app.api.v1.auth import router as auth_router
@@ -24,3 +25,4 @@ api_router.include_router(reports_router)
 api_router.include_router(imports_router)
 api_router.include_router(tracking_router)
 api_router.include_router(audit_logs_router)
+api_router.include_router(ai_router)

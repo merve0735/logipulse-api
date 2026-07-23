@@ -25,6 +25,7 @@ class AuditAction(str, Enum):
     CSV_ROUTE_IMPORTED = "csv_route_imported"
     SUSTAINABILITY_PDF_DOWNLOADED = "sustainability_pdf_downloaded"
     DEMO_SEEDED = "demo_seeded"
+    AI_ADVISOR_ASKED = "ai_advisor_asked"
 
 
 class AuditLogOut(BaseModel):

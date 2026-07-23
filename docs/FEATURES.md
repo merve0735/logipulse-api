@@ -42,6 +42,10 @@ LogiPulse automatically flags situations that need attention: routes losing mone
 
 Beyond alerts, LogiPulse looks for patterns and suggests actions: optimizing loss-making routes, reducing carbon on high-emission routes, shifting more trips to electric vehicles, reviewing cancelled routes, and investigating failed or retried deliveries.
 
+## LogiPulse AI Advisor
+
+Admins can also ask a free-form question — "Why is our carbon emission high?", "Which operations are losing money?" — and get a written answer from Google Gemini. The advisor looks at the same summarized data the dashboard, alerts, recommendations, and sustainability report already show (not raw customer records), so its answers stay grounded in what LogiPulse actually knows. It only reads data and never changes anything, and every question asked is written to the audit log.
+
 ## Sustainability report and PDF export
 
 A combined report pulling together financial performance, carbon impact, risk (from alerts), and improvement opportunities (from recommendations) into one readable summary — viewable on screen or downloaded as a PDF for sharing outside the system.
