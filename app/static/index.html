@@ -1650,6 +1650,7 @@
     }
     currentUser = await res.json();
 
+    document.getElementById('auth-screen').classList.add('hidden');
     document.getElementById('auth-container').classList.add('hidden');
     document.getElementById('landing-header').classList.add('hidden');
     document.getElementById('app-shell').classList.remove('hidden');
@@ -1984,6 +1985,7 @@
     currentUser = null;
     routesOffset = 0;
     localStorage.removeItem('logipulse_token');
+    document.getElementById('auth-screen').classList.remove('hidden');
     document.getElementById('landing-header').classList.remove('hidden');
     document.getElementById('auth-container').classList.remove('hidden');
     document.getElementById('auth-card').classList.remove('hidden');
