@@ -10,6 +10,9 @@
   :root {
     --primary: #16a34a;
     --primary-dark: #15803d;
+    --primary-light: #ecfdf5;
+    --navy: #0f172a;
+    --navy-soft: #1e293b;
     --bg: #f4f6f8;
     --card-bg: #ffffff;
     --text: #1f2937;
@@ -41,10 +44,26 @@
   .card {
     background: var(--card-bg);
     border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 20px 24px;
+    border-radius: 12px;
+    padding: 22px 26px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
   }
   .card h2 { margin-top: 0; font-size: 16px; }
+  .page-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 18px; }
+  .page-header-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 19px;
+    flex-shrink: 0;
+    background: var(--primary-light);
+    color: var(--primary-dark);
+  }
+  .page-header-text h2 { margin: 0; font-size: 18px; color: var(--navy); }
+  .page-header-text p { margin: 3px 0 0; font-size: 12.5px; color: var(--muted); }
   label { display: block; font-size: 13px; margin: 10px 0 4px; color: var(--muted); }
   input, select {
     width: 100%;
@@ -59,17 +78,21 @@
     color: white;
     border: none;
     padding: 9px 18px;
-    border-radius: 6px;
+    border-radius: 7px;
     cursor: pointer;
     font-size: 14px;
+    font-weight: 600;
+    transition: background 0.15s ease, transform 0.05s ease;
   }
   button:hover { background: var(--primary-dark); }
+  button:active { transform: translateY(1px); }
   button:disabled { opacity: 0.5; cursor: not-allowed; }
   button.secondary {
     background: transparent;
     color: var(--primary-dark);
     border: 1px solid var(--primary);
   }
+  button.secondary:hover { background: var(--primary-light); }
   .row { display: flex; gap: 12px; flex-wrap: wrap; }
   .row > div { flex: 1; min-width: 160px; }
   .tabs { display: flex; gap: 8px; margin-bottom: 12px; }
@@ -79,26 +102,35 @@
   .msg { font-size: 13px; margin-top: 10px; min-height: 16px; }
   .msg.error { color: var(--danger); }
   .msg.success { color: var(--primary-dark); }
-  .stat { display: flex; gap: 24px; flex-wrap: wrap; }
+  .stat { display: flex; gap: 16px; flex-wrap: wrap; }
   .stat .box {
     flex: 1;
-    min-width: 140px;
-    background: #f0fdf4;
+    min-width: 150px;
+    background: var(--primary-light);
     border: 1px solid #bbf7d0;
-    border-radius: 8px;
+    border-radius: 10px;
     padding: 14px 16px;
+    transition: transform 0.1s ease;
   }
-  .stat .box .value { font-size: 24px; font-weight: 700; color: var(--primary-dark); }
+  .stat .box .value { font-size: 24px; font-weight: 700; color: var(--navy); }
   .stat .box .label { font-size: 12px; color: var(--muted); margin-top: 2px; }
   table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
-  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
-  th { color: var(--muted); font-weight: 600; }
+  th, td { text-align: left; padding: 10px 10px; border-bottom: 1px solid var(--border); }
+  th {
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  tbody tr:hover { background: #fafbfc; }
   td button { margin-top: 0; padding: 4px 10px; font-size: 12px; }
   .badge {
     display: inline-block;
-    padding: 2px 8px;
+    padding: 2px 9px;
     border-radius: 999px;
     font-size: 11px;
+    font-weight: 600;
     background: #e0f2fe;
     color: #075985;
   }
@@ -146,10 +178,10 @@
 
   #app-shell { display: flex; min-height: 100vh; }
   #sidebar {
-    width: 240px;
+    width: 252px;
     flex-shrink: 0;
-    background: #111827;
-    color: #e5e7eb;
+    background: var(--navy);
+    color: #cbd5e1;
     display: flex;
     flex-direction: column;
     position: sticky;
@@ -158,26 +190,63 @@
     overflow-y: auto;
   }
   .sidebar-header {
-    padding: 20px 20px 16px;
-    font-size: 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 20px 18px 16px;
+    font-size: 17px;
     font-weight: 700;
     color: white;
-    border-bottom: 1px solid #1f2937;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   }
-  #sidebar-nav { display: flex; flex-direction: column; padding: 12px 0; }
+  .sidebar-header-logo {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 15px;
+  }
+  .sidebar-role-tag {
+    margin: 12px 18px 0;
+    padding: 5px 10px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    display: inline-block;
+  }
+  #sidebar-nav { display: flex; flex-direction: column; padding: 14px 10px; gap: 2px; }
   .sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
     background: transparent;
     border: none;
-    color: #cbd5e1;
+    border-left: 3px solid transparent;
+    color: #94a3b8;
     text-align: left;
-    padding: 10px 20px;
+    padding: 10px 12px;
     font-size: 13px;
+    font-weight: 500;
     cursor: pointer;
-    border-radius: 0;
+    border-radius: 8px;
     margin-top: 0;
   }
-  .sidebar-link:hover { background: #1f2937; color: white; }
-  .sidebar-link.active { background: var(--primary); color: white; font-weight: 600; }
+  .sidebar-link-icon { font-size: 15px; width: 18px; text-align: center; flex-shrink: 0; }
+  .sidebar-link:hover { background: rgba(255, 255, 255, 0.06); color: white; }
+  .sidebar-link.active {
+    background: rgba(22, 163, 74, 0.2);
+    color: white;
+    font-weight: 600;
+    border-left-color: var(--primary);
+  }
   #app-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
   #topbar {
     display: flex;
@@ -185,13 +254,25 @@
     justify-content: space-between;
     background: var(--card-bg);
     border-bottom: 1px solid var(--border);
-    padding: 12px 20px;
+    padding: 12px 22px;
     position: sticky;
     top: 0;
     z-index: 10;
   }
   .topbar-left { display: flex; align-items: center; gap: 12px; }
-  .topbar-title { font-weight: 700; font-size: 16px; color: var(--primary-dark); }
+  .topbar-title { font-weight: 700; font-size: 16px; color: var(--navy); }
+  .topbar-role-pill {
+    display: inline-block;
+    padding: 2px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    background: var(--primary-light);
+    color: var(--primary-dark);
+    margin-left: 8px;
+  }
   #hamburger-btn {
     display: none;
     margin-top: 0;
@@ -248,19 +329,15 @@
     height: 640px;
     max-height: 75vh;
   }
-  #ai-advisor-card h2 {
+  .ai-title-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 11px;
     display: flex;
     align-items: center;
-    gap: 8px;
-  }
-  .ai-title-icon {
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    display: inline-flex;
-    align-items: center;
     justify-content: center;
-    font-size: 13px;
+    font-size: 19px;
+    flex-shrink: 0;
     color: white;
     background: linear-gradient(135deg, #4b8bf5, #a142f4);
   }
@@ -401,6 +478,29 @@
   #ai-send-btn:hover { opacity: 0.9; }
   #ai-send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
+  /* Durak listesi ve teslimat aksiyonlari (admin + driver ortak) */
+  .stop-item {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    background: var(--card-bg);
+  }
+  .stop-item-title { font-size: 13.5px; }
+  .stop-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .stop-actions button { margin-top: 0; padding: 6px 12px; font-size: 12px; }
+  .pod-form {
+    margin-top: 10px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--primary);
+    border-radius: 8px;
+    background: var(--primary-light);
+  }
+  .pod-form label:first-child { margin-top: 0; }
+  .pod-form-actions { display: flex; gap: 8px; margin-top: 10px; }
+  .pod-form-actions button { margin-top: 0; }
+
   /* Giris ekrani */
   #auth-screen { display: flex; min-height: 100vh; }
   #landing-header {
@@ -410,7 +510,7 @@
     align-items: center;
     justify-content: center;
     padding: 48px;
-    background: linear-gradient(160deg, #14532d 0%, #15803d 45%, #16a34a 100%);
+    background: linear-gradient(155deg, var(--navy) 0%, #123524 55%, var(--primary-dark) 100%);
     color: white;
     position: relative;
     overflow: hidden;
@@ -419,37 +519,58 @@
     content: '';
     position: absolute;
     inset: 0;
-    background:
-      radial-gradient(circle at 80% 10%, rgba(255, 255, 255, 0.14), transparent 45%),
-      radial-gradient(circle at 10% 90%, rgba(75, 139, 245, 0.3), transparent 50%);
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    background-size: 42px 42px;
+    mask-image: radial-gradient(circle at 30% 20%, black, transparent 70%);
     pointer-events: none;
   }
-  .auth-brand { max-width: 420px; position: relative; z-index: 1; }
+  .auth-brand { max-width: 440px; position: relative; z-index: 1; }
   .auth-brand-logo {
-    width: 56px;
-    height: 56px;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 26px;
-    background: rgba(255, 255, 255, 0.15);
+    width: 52px;
+    height: 52px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.18);
     border-radius: 14px;
-    margin-bottom: 20px;
+    margin-bottom: 22px;
   }
-  .auth-brand h1 { margin: 0 0 8px; font-size: 32px; }
-  .auth-brand-tagline { margin: 0 0 32px; font-size: 15px; opacity: 0.88; line-height: 1.55; }
-  .auth-brand-features { list-style: none; padding: 0; margin: 0; display: grid; gap: 14px; }
+  .auth-brand-eyebrow {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #86efac;
+    margin-bottom: 10px;
+  }
+  .auth-brand h1 { margin: 0 0 10px; font-size: 34px; line-height: 1.15; }
+  .auth-brand-tagline { margin: 0 0 34px; font-size: 15px; opacity: 0.82; line-height: 1.6; max-width: 400px; }
+  .auth-brand-features { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
   .auth-brand-features li {
     display: flex;
     align-items: center;
-    gap: 12px;
-    font-size: 14px;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.16);
+    gap: 13px;
+    font-size: 13.5px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 10px;
-    padding: 12px 14px;
+    padding: 13px 15px;
   }
-  .auth-brand-feature-icon { font-size: 18px; flex-shrink: 0; }
+  .auth-brand-feature-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    flex-shrink: 0;
+  }
   #auth-container {
     flex: 1;
     min-width: 0;
@@ -460,10 +581,51 @@
     margin: 0;
     max-width: none;
   }
-  #auth-card { width: 100%; max-width: 380px; box-shadow: 0 10px 40px rgba(15, 23, 42, 0.08); }
+  #auth-card { width: 100%; max-width: 400px; box-shadow: 0 10px 40px rgba(15, 23, 42, 0.08); }
   .auth-card-header { text-align: center; margin-bottom: 18px; }
   .auth-card-header h2 { margin: 0; font-size: 20px; }
   .auth-card-header p { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
+  .role-select { display: flex; gap: 8px; margin: 6px 0 4px; }
+  .role-select-btn {
+    flex: 1;
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 10px 10px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+  }
+  .role-select-btn:hover { background: #eef2f5; }
+  .role-select-btn.active { background: var(--navy); color: white; border-color: var(--navy); }
+  #role-mismatch-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    color: #92400e;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    margin-bottom: 4px;
+  }
+  #role-mismatch-banner button {
+    margin: 0;
+    background: transparent;
+    color: #92400e;
+    border: none;
+    font-size: 16px;
+    padding: 0 4px;
+    line-height: 1;
+  }
   @media (max-width: 860px) {
     #auth-screen { flex-direction: column; }
     #landing-header { padding: 32px 24px; }
@@ -477,9 +639,12 @@
 
 <header id="landing-header">
   <div class="auth-brand">
-    <div class="auth-brand-logo">🚚</div>
+    <div class="auth-brand-logo">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 12c3-6 6-9 9-9s6 3 9 9c-3 6-6 9-9 9s-6-3-9-9Z" stroke="white" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="12" r="2.75" fill="white"/></svg>
+    </div>
+    <span class="auth-brand-eyebrow">Operasyon Platformu</span>
     <h1>LogiPulse</h1>
-    <p class="auth-brand-tagline">Carbon-aware logistics &amp; delivery management. Rota, araç, kurye ve teslimat verilerinizi tek panelden yönetin.</p>
+    <p class="auth-brand-tagline">Rota, araç, kurye ve teslimat verilerinizi tek panelde toplayın; kârlılığı ve karbon etkisini birlikte yönetin.</p>
     <ul class="auth-brand-features">
       <li><span class="auth-brand-feature-icon">🛣️</span> Rota, araç ve teslimat takibi tek panelde</li>
       <li><span class="auth-brand-feature-icon">🌱</span> Kâr ve karbon etkisini birlikte optimize edin</li>
@@ -501,6 +666,11 @@
     </div>
 
     <div id="login-form">
+      <label>Giriş Türü</label>
+      <div class="role-select" id="login-role-select">
+        <button type="button" class="role-select-btn active" data-role="admin" onclick="selectLoginRole('admin')">🧭 Yönetici Girişi</button>
+        <button type="button" class="role-select-btn" data-role="driver" onclick="selectLoginRole('driver')">🚴 Kurye Girişi</button>
+      </div>
       <label>E-posta</label>
       <input type="email" id="login-email" placeholder="ornek@sirket.com" value="admin@logipulse.demo">
       <label>Şifre</label>
@@ -510,19 +680,14 @@
     </div>
 
     <div id="register-form" class="hidden">
-      <div class="row">
-        <div>
-          <label>Ad Soyad / Şirket Yetkilisi</label>
-          <input type="text" id="reg-name" placeholder="Örn: Merve Sena Doğan">
-        </div>
-        <div>
-          <label>Rol</label>
-          <select id="reg-role">
-            <option value="admin">admin (şirket yöneticisi)</option>
-            <option value="driver">driver (kurye)</option>
-          </select>
-        </div>
+      <label>Ad Soyad / Şirket Yetkilisi</label>
+      <input type="text" id="reg-name" placeholder="Örn: Merve Sena Doğan">
+      <label>Rol</label>
+      <div class="role-select" id="reg-role-select">
+        <button type="button" class="role-select-btn active" data-role="admin" onclick="selectRegisterRole('admin')">🧭 Yönetici</button>
+        <button type="button" class="role-select-btn" data-role="driver" onclick="selectRegisterRole('driver')">🚴 Kurye</button>
       </div>
+      <input type="hidden" id="reg-role" value="admin">
       <label>E-posta</label>
       <input type="email" id="reg-email" placeholder="ornek@sirket.com">
       <label>Şifre</label>
@@ -538,7 +703,13 @@
 <div id="app-shell" class="hidden">
   <div id="sidebar-overlay" onclick="closeMobileSidebar()"></div>
   <aside id="sidebar">
-    <div class="sidebar-header">LogiPulse</div>
+    <div class="sidebar-header">
+      <span class="sidebar-header-logo">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 12c3-6 6-9 9-9s6 3 9 9c-3 6-6 9-9 9s-6-3-9-9Z" stroke="white" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="12" r="2.5" fill="white"/></svg>
+      </span>
+      <span>LogiPulse</span>
+    </div>
+    <span id="sidebar-role-tag" class="sidebar-role-tag"></span>
     <nav id="sidebar-nav"></nav>
   </aside>
   <div id="app-main">
@@ -556,15 +727,32 @@
     </header>
     <main id="page-content">
 
+  <div id="role-mismatch-banner" class="hidden">
+    <span>Bu hesap seçilen rol ile eşleşmiyor.</span>
+    <button type="button" onclick="document.getElementById('role-mismatch-banner').classList.add('hidden')" aria-label="Kapat">×</button>
+  </div>
+
   <div class="card hidden" id="tracking-map-card" data-page="kurye-haritasi">
-    <h2>Canlı Kurye Haritası</h2>
+    <div class="page-header">
+      <div class="page-header-icon">📍</div>
+      <div class="page-header-text">
+        <h2>Canlı Kurye Haritası</h2>
+        <p>Operasyon takip ekranı — sürücülerin anlık konumu ve aktif rotaları</p>
+      </div>
+    </div>
     <button class="secondary" onclick="loadDriverLocations()">Konumları Yenile</button>
     <div id="tracking-map" style="height: 360px; border-radius: 8px; margin-top: 10px;"></div>
     <div id="tracking-no-location-list" style="margin-top: 10px; font-size: 13px; color: var(--muted);"></div>
   </div>
 
   <div class="card hidden" id="driver-location-card" data-page="konum-guncelle">
-    <h2>Konumumu Güncelle</h2>
+    <div class="page-header">
+      <div class="page-header-icon">📍</div>
+      <div class="page-header-text">
+        <h2>Konumumu Güncelle</h2>
+        <p>Anlık konumunuzu paylaşın, yöneticiler haritada görsün</p>
+      </div>
+    </div>
     <div class="row">
       <div>
         <label>Enlem (latitude)</label>
@@ -575,12 +763,19 @@
         <input type="number" step="any" id="my-location-lng" placeholder="30.7056">
       </div>
     </div>
+    <button type="button" class="secondary" onclick="useBrowserLocation()">📍 Tarayıcıdan Konumumu Al</button>
     <button onclick="submitMyLocation()">Konum Gönder</button>
     <div id="my-location-msg" class="msg"></div>
   </div>
 
   <div class="card hidden" id="admin-summary-card" data-page="yonetici-ozeti">
-    <h2>Yönetici Özeti</h2>
+    <div class="page-header">
+      <div class="page-header-icon">📊</div>
+      <div class="page-header-text">
+        <h2>Yönetici Özeti</h2>
+        <p>Filo genelinde kâr, karbon ve teslimat performansı</p>
+      </div>
+    </div>
     <div id="summary-empty-msg" class="msg hidden">Henüz raporlanacak rota yok.</div>
     <div id="summary-content" class="hidden">
       <div class="stat">
@@ -683,19 +878,37 @@
   </div>
 
   <div class="card hidden" id="admin-alerts-card" data-page="uyarilar">
-    <h2>Uyarılar</h2>
+    <div class="page-header">
+      <div class="page-header-icon">⚠️</div>
+      <div class="page-header-text">
+        <h2>Uyarılar</h2>
+        <p>Risk merkezi — dikkat gerektiren rotalar ve teslimatlar</p>
+      </div>
+    </div>
     <div id="alerts-empty-msg" class="msg hidden">Şu anda aktif uyarı yok.</div>
     <div id="alerts-list"></div>
   </div>
 
   <div class="card hidden" id="admin-recommendations-card" data-page="oneriler">
-    <h2>Öneriler</h2>
+    <div class="page-header">
+      <div class="page-header-icon">💡</div>
+      <div class="page-header-text">
+        <h2>Öneriler</h2>
+        <p>Aksiyon merkezi — kârlılığı ve sürdürülebilirliği artıracak öneriler</p>
+      </div>
+    </div>
     <div id="recommendations-empty-msg" class="msg hidden">Şu anda öneri bulunmuyor.</div>
     <div id="recommendations-list"></div>
   </div>
 
   <div class="card hidden" id="admin-report-card" data-page="rapor">
-    <h2 id="report-title">Sürdürülebilirlik Raporu</h2>
+    <div class="page-header">
+      <div class="page-header-icon">🌱</div>
+      <div class="page-header-text">
+        <h2 id="report-title">Sürdürülebilirlik Raporu</h2>
+        <p>Yönetim raporu — finansal, karbon ve operasyon özetleri</p>
+      </div>
+    </div>
     <div id="report-generated-at" style="font-size: 12px; color: var(--muted); margin-bottom: 8px;"></div>
     <div id="report-executive-summary" style="margin-bottom: 12px;"></div>
 
@@ -835,7 +1048,13 @@
   </div>
 
   <div class="card hidden" id="stats-card" data-page="rotalar">
-    <h2>Özet</h2>
+    <div class="page-header">
+      <div class="page-header-icon">🛣️</div>
+      <div class="page-header-text">
+        <h2 id="routes-page-title">Rotalar</h2>
+        <p id="routes-page-subtitle">Operasyon tablosu — tüm rotalarınızı filtreleyin, arayın ve yönetin</p>
+      </div>
+    </div>
     <div class="stat">
       <div class="box">
         <div class="value" id="stat-route-count">0</div>
@@ -853,7 +1072,13 @@
   </div>
 
   <div class="card hidden" id="vehicle-recommendation-card" data-page="arac-onerisi">
-    <h2>Akıllı Araç Önerisi</h2>
+    <div class="page-header">
+      <div class="page-header-icon">🧭</div>
+      <div class="page-header-text">
+        <h2>Akıllı Araç Önerisi</h2>
+        <p>Karar destek ekranı — rota için en uygun aracı bulun</p>
+      </div>
+    </div>
     <div class="row">
       <div>
         <label>Mesafe (km)</label>
@@ -882,7 +1107,13 @@
   </div>
 
   <div class="card hidden" id="create-route-card" data-page="yeni-rota">
-    <h2>Yeni Rota Oluştur</h2>
+    <div class="page-header">
+      <div class="page-header-icon">➕</div>
+      <div class="page-header-text">
+        <h2>Yeni Rota Oluştur</h2>
+        <p>Güzergah, araç ve durak bilgilerini girin — kâr/karbon otomatik hesaplanır</p>
+      </div>
+    </div>
     <div id="no-vehicles-msg" class="msg error hidden">Önce bir araç oluşturmalısınız.</div>
     <div id="route-form-fields">
       <div class="row">
@@ -920,7 +1151,13 @@
   </div>
 
   <div class="card hidden" id="csv-import-card" data-page="csv-ice-aktar">
-    <h2>CSV ile Rota İçe Aktar</h2>
+    <div class="page-header">
+      <div class="page-header-icon">📥</div>
+      <div class="page-header-text">
+        <h2>CSV ile Rota İçe Aktar</h2>
+        <p>Veri içe aktarma aracı — toplu durak listesini tek seferde yükleyin</p>
+      </div>
+    </div>
     <div class="row">
       <div>
         <label>Rota Adı</label>
@@ -973,7 +1210,7 @@
   </div>
 
   <div class="card hidden" id="routes-card" data-page="rotalar">
-    <h2>Rotalar</h2>
+    <h3 style="font-size: 14px; margin: 0 0 4px;">Rota Listesi ve Filtreler</h3>
 
     <div class="row">
       <div>
@@ -1071,7 +1308,13 @@
   </div>
 
   <div class="card hidden" id="vehicles-card" data-page="araclar">
-    <h2>Araçlar</h2>
+    <div class="page-header">
+      <div class="page-header-icon">🚚</div>
+      <div class="page-header-text">
+        <h2>Araçlar</h2>
+        <p>Filo yönetimi — araçları görüntüleyin ve yeni araç ekleyin</p>
+      </div>
+    </div>
     <button class="secondary" onclick="loadVehiclesList()">Yenile</button>
     <table>
       <thead>
@@ -1124,7 +1367,13 @@
   </div>
 
   <div class="card hidden" id="audit-logs-card" data-page="islem-gecmisi">
-    <h2>İşlem Geçmişi</h2>
+    <div class="page-header">
+      <div class="page-header-icon">🕒</div>
+      <div class="page-header-text">
+        <h2>İşlem Geçmişi</h2>
+        <p>Audit log — kim, ne zaman, ne yaptı</p>
+      </div>
+    </div>
 
     <div class="row">
       <div>
@@ -1189,7 +1438,13 @@
   </div>
 
   <div class="card hidden" id="ai-advisor-card" data-page="ai-danisman">
-    <h2><span class="ai-title-icon">✦</span> AI Danışman</h2>
+    <div class="page-header">
+      <div class="ai-title-icon">✦</div>
+      <div class="page-header-text">
+        <h2>AI Danışman</h2>
+        <p>Gemini destekli sohbet — verilerinize dayalı anında analiz ve öneri</p>
+      </div>
+    </div>
 
     <div id="ai-chat-window">
       <div id="ai-chat-empty" class="ai-chat-empty">
@@ -1223,26 +1478,27 @@
   const ROUTES_LIMIT = 20;
 
   const ADMIN_MENU = [
-    { key: 'yonetici-ozeti', label: 'Yönetici Özeti' },
-    { key: 'arac-onerisi', label: 'Akıllı Araç Önerisi' },
-    { key: 'rotalar', label: 'Rotalar' },
-    { key: 'yeni-rota', label: 'Yeni Rota Oluştur' },
-    { key: 'csv-ice-aktar', label: 'CSV İçe Aktar' },
-    { key: 'araclar', label: 'Araçlar' },
-    { key: 'kurye-haritasi', label: 'Kurye Haritası' },
-    { key: 'uyarilar', label: 'Uyarılar' },
-    { key: 'oneriler', label: 'Öneriler' },
-    { key: 'rapor', label: 'Sürdürülebilirlik Raporu' },
-    { key: 'islem-gecmisi', label: 'İşlem Geçmişi' },
-    { key: 'ai-danisman', label: 'AI Danışman' },
+    { key: 'yonetici-ozeti', label: 'Yönetici Özeti', icon: '📊' },
+    { key: 'arac-onerisi', label: 'Akıllı Araç Önerisi', icon: '🧭' },
+    { key: 'rotalar', label: 'Rotalar', icon: '🛣️' },
+    { key: 'yeni-rota', label: 'Yeni Rota Oluştur', icon: '➕' },
+    { key: 'csv-ice-aktar', label: 'CSV İçe Aktar', icon: '📥' },
+    { key: 'araclar', label: 'Araçlar', icon: '🚚' },
+    { key: 'kurye-haritasi', label: 'Kurye Haritası', icon: '📍' },
+    { key: 'uyarilar', label: 'Uyarılar', icon: '⚠️' },
+    { key: 'oneriler', label: 'Öneriler', icon: '💡' },
+    { key: 'rapor', label: 'Sürdürülebilirlik Raporu', icon: '🌱' },
+    { key: 'islem-gecmisi', label: 'İşlem Geçmişi', icon: '🕒' },
+    { key: 'ai-danisman', label: 'AI Danışman', icon: '✦' },
   ];
 
   const DRIVER_MENU = [
-    { key: 'rotalar', label: 'Rotalarım' },
-    { key: 'konum-guncelle', label: 'Konumumu Güncelle' },
+    { key: 'rotalar', label: 'Rotalarım', icon: '🛣️' },
+    { key: 'konum-guncelle', label: 'Konumumu Güncelle', icon: '📍' },
   ];
 
   function buildSidebar(role) {
+    document.getElementById('sidebar-role-tag').textContent = role === 'admin' ? 'Yönetici Paneli' : 'Kurye Paneli';
     const menu = role === 'admin' ? ADMIN_MENU : DRIVER_MENU;
     const nav = document.getElementById('sidebar-nav');
     nav.innerHTML = '';
@@ -1251,7 +1507,7 @@
       link.type = 'button';
       link.className = 'sidebar-link';
       link.dataset.page = item.key;
-      link.textContent = item.label;
+      link.innerHTML = `<span class="sidebar-link-icon">${item.icon}</span><span>${item.label}</span>`;
       link.onclick = () => showPage(item.key);
       nav.appendChild(link);
     });
@@ -1589,6 +1845,32 @@
     document.getElementById('register-form').classList.toggle('hidden', tab !== 'register');
   }
 
+  // Giris ekranindaki rol secimi sadece kullanici deneyimi icindir (demo bilgilerini
+  // doldurur ve giris sonrasi uyumsuzluk uyarisi gosterir). Gercek rol her zaman
+  // backend'den donen JWT'den gelir, burada secilen deger guvenlik icin kullanilmaz.
+  let selectedLoginRole = 'admin';
+  const LOGIN_DEMO_CREDENTIALS = {
+    admin: { email: 'admin@logipulse.demo', password: 'Demo1234' },
+    driver: { email: 'driver1@logipulse.demo', password: 'Driver12345' },
+  };
+
+  function selectLoginRole(role) {
+    selectedLoginRole = role;
+    document.querySelectorAll('#login-role-select .role-select-btn').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.role === role);
+    });
+    const creds = LOGIN_DEMO_CREDENTIALS[role];
+    document.getElementById('login-email').value = creds.email;
+    document.getElementById('login-password').value = creds.password;
+  }
+
+  function selectRegisterRole(role) {
+    document.getElementById('reg-role').value = role;
+    document.querySelectorAll('#reg-role-select .role-select-btn').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.role === role);
+    });
+  }
+
   async function register() {
     const msg = document.getElementById('register-msg');
     msg.textContent = '';
@@ -1607,10 +1889,12 @@
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'Kayıt başarısız');
-      msg.textContent = 'Kayıt başarılı! Şimdi giriş yapabilirsin.';
+      msg.textContent = 'Kayıt başarılı. Şimdi giriş yapabilirsiniz.';
       msg.className = 'msg success';
       switchTab('login');
+      selectLoginRole(body.role);
       document.getElementById('login-email').value = body.email;
+      document.getElementById('login-password').value = '';
     } catch (err) {
       msg.textContent = err.message;
       msg.className = 'msg error';
@@ -1650,6 +1934,9 @@
     }
     currentUser = await res.json();
 
+    const roleMismatchBanner = document.getElementById('role-mismatch-banner');
+    roleMismatchBanner.classList.toggle('hidden', currentUser.role === selectedLoginRole);
+
     document.getElementById('auth-screen').classList.add('hidden');
     document.getElementById('auth-container').classList.add('hidden');
     document.getElementById('landing-header').classList.add('hidden');
@@ -1658,8 +1945,9 @@
     document.getElementById('stats-card').classList.remove('hidden');
     document.getElementById('routes-card').classList.remove('hidden');
 
-    document.getElementById('user-info').textContent =
-      `Giriş yapıldı: ${currentUser.full_name} (${currentUser.email}) — Rol: ${currentUser.role}`;
+    document.getElementById('user-info').innerHTML =
+      `${currentUser.full_name} <span style="color: var(--muted);">(${currentUser.email})</span>` +
+      `<span class="topbar-role-pill">${currentUser.role === 'admin' ? 'Yönetici' : 'Kurye'}</span>`;
 
     if (currentUser.role === 'admin') {
       document.getElementById('vehicle-recommendation-card').classList.remove('hidden');
@@ -2272,6 +2560,11 @@
   }
 
   async function loadRoutes() {
+    const isDriverView = currentUser.role !== 'admin';
+    document.getElementById('routes-page-title').textContent = isDriverView ? 'Rotalarım' : 'Rotalar';
+    document.getElementById('routes-page-subtitle').textContent = isDriverView
+      ? 'Size atanan rotalar, duraklar ve teslimat aksiyonları'
+      : 'Operasyon tablosu — tüm rotalarınızı filtreleyin, arayın ve yönetin';
     const endpoint = currentUser.role === 'admin' ? 'routes' : 'routes/my-routes';
     const query = buildRouteQueryString();
     const res = await fetch(`${API_BASE}/api/v1/${endpoint}?${query}`, {
@@ -2314,18 +2607,20 @@
             let stopActions = '';
             if (currentUser.role === 'driver') {
               stopActions = `
-                <button onclick="showDeliverForm('${r.id}','${s.id}')">Teslim Edildi</button>
-                <button class="secondary" onclick="failStop('${r.id}','${s.id}')">Başarısız</button>
-                <button class="secondary" onclick="skipStop('${r.id}','${s.id}')">Atla</button>
-                <button class="secondary" onclick="retryStop('${r.id}','${s.id}')">Tekrar Dene</button>
+                <div class="stop-actions">
+                  <button onclick="showDeliverForm('${r.id}','${s.id}')">✓ Teslim Edildi</button>
+                  <button class="secondary" onclick="failStop('${r.id}','${s.id}')">✕ Başarısız</button>
+                  <button class="secondary" onclick="skipStop('${r.id}','${s.id}')">⤼ Atla</button>
+                  <button class="secondary" onclick="retryStop('${r.id}','${s.id}')">↻ Tekrar Dene</button>
+                </div>
               `;
             }
             const failureLine = s.failure_reason
-              ? `<div style="font-size: 12px; color: var(--danger);">Sebep: ${s.failure_reason}</div>`
+              ? `<div style="font-size: 12px; color: var(--danger); margin-top: 4px;">Sebep: ${s.failure_reason}</div>`
               : '';
             const pod = s.proof_of_delivery;
             const podLine = pod
-              ? `<div style="font-size: 12px; color: var(--muted); margin-top: 4px; border-top: 1px dashed var(--border); padding-top: 4px;">
+              ? `<div style="font-size: 12px; color: var(--muted); margin-top: 6px; border-top: 1px dashed var(--border); padding-top: 6px;">
                   <strong>Teslimat Kanıtı:</strong> ${pod.recipient_name}
                   ${pod.recipient_signature_text ? ` | İmza: ${pod.recipient_signature_text}` : ''}
                   ${pod.delivery_photo_url ? ` | <a href="${pod.delivery_photo_url}" target="_blank" rel="noopener">Fotoğraf</a>` : ''}
@@ -2335,7 +2630,7 @@
             const deliverFormHtml =
               currentUser.role === 'driver'
                 ? `
-              <div id="deliver-form-${s.id}" class="hidden" style="margin-top: 8px; padding: 8px; border: 1px solid var(--border); border-radius: 6px;">
+              <div id="deliver-form-${s.id}" class="hidden pod-form">
                 <label>Alıcı Adı *</label>
                 <input type="text" id="pod-name-${s.id}" placeholder="Ayşe Yılmaz">
                 <label>İmza Metni</label>
@@ -2354,17 +2649,19 @@
                 </div>
                 <label>Teslimat Notu</label>
                 <input type="text" id="pod-note-${s.id}" placeholder="Not">
-                <button onclick="submitDeliverForm('${r.id}','${s.id}')" style="margin-top: 8px;">Teslimi Onayla</button>
-                <button class="secondary" onclick="document.getElementById('deliver-form-${s.id}').classList.add('hidden')" style="margin-top: 8px;">Vazgeç</button>
+                <div class="pod-form-actions">
+                  <button onclick="submitDeliverForm('${r.id}','${s.id}')">Teslimi Onayla</button>
+                  <button class="secondary" onclick="document.getElementById('deliver-form-${s.id}').classList.add('hidden')">Vazgeç</button>
+                </div>
               </div>`
                 : '';
             return `
-              <div style="border-bottom: 1px solid var(--border); padding: 6px 0;">
-                <strong>#${s.sequence_number} ${s.customer_name}</strong> — ${s.address}
+              <div class="stop-item">
+                <span class="stop-item-title"><strong>#${s.sequence_number} ${s.customer_name}</strong> — ${s.address}</span>
                 <span class="badge">${stopStatusLabels[s.status] || s.status}</span>
                 ${failureLine}
                 ${podLine}
-                <div style="margin-top: 4px;">${stopActions}</div>
+                ${stopActions}
                 ${deliverFormHtml}
               </div>
             `;
@@ -2584,6 +2881,29 @@
       clearInterval(trackingAutoRefreshInterval);
       trackingAutoRefreshInterval = null;
     }
+  }
+
+  function useBrowserLocation() {
+    const msg = document.getElementById('my-location-msg');
+    if (!navigator.geolocation) {
+      msg.textContent = 'Tarayıcınız konum paylaşımını desteklemiyor.';
+      msg.className = 'msg error';
+      return;
+    }
+    msg.textContent = 'Konum alınıyor...';
+    msg.className = 'msg';
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        document.getElementById('my-location-lat').value = position.coords.latitude;
+        document.getElementById('my-location-lng').value = position.coords.longitude;
+        msg.textContent = 'Konum alındı. Göndermek için "Konum Gönder" butonuna basın.';
+        msg.className = 'msg success';
+      },
+      () => {
+        msg.textContent = 'Konum alınamadı, lütfen izin verin veya manuel girin.';
+        msg.className = 'msg error';
+      }
+    );
   }
 
   async function submitMyLocation() {
