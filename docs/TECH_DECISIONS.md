@@ -36,6 +36,14 @@ The Gemini-powered **AI Advisor** was added on top of that baseline, not instead
 
 Once multiple people (admins and drivers) act on the same data, "who did this, and when?" becomes an important question — for troubleshooting, and for basic accountability. Audit logging was added as its own small module so it can record any important action without being tightly coupled to the business logic of that action, and so that a logging failure can never break the action itself (log-write errors are caught and swallowed).
 
+## Why application logging (separate from audit logs)?
+
+Audit logs answer a *business* question ("who did what?"); they don't tell you *why* the app feels slow or where a request failed. Application logging was added to answer that separate, technical question: which endpoint was called, how long it took, and which specific step (token verification, the Gemini call, PDF generation, CSV import) was the bottleneck. It's plain Python `logging` with one shared formatter — no external logging service or extra dependency, since a small project like this doesn't need one, and a consistent `HH:MM:SS | LEVEL | scope | message` line is enough to debug locally or read from `docker compose logs`.
+
+Request bodies, tokens, passwords, and the Gemini API key are never written to these logs, on purpose — only method, path, status code, and duration. Application logs tend to end up in terminals, CI output, and sometimes third-party log aggregators; keeping secrets out of them by construction is simpler and safer than trying to redact them later.
+
+Slow-request warnings (>1 second by default) exist so that performance regressions are visible immediately, in the same place as every other log line, instead of requiring a separate profiling tool to notice that e.g. the Gemini call or a report endpoint has become unusually slow.
+
 ## KVKK / personal data note
 
 Driver location data, collected for the tracking map, can be considered personal data. This project is an MVP and does not implement consent screens, data retention limits, or granular access permissions for that data. Before any real-world use, these would need to be designed properly (explicit consent, a defined retention period, and clear rules on who can access location history) to comply with data protection regulations such as KVKK.

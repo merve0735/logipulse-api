@@ -1,3 +1,4 @@
+import time
 from typing import Optional
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile, status
@@ -7,6 +8,7 @@ from app.api.v1.audit_logs import get_audit_log_service
 from app.api.v1.auth import get_user_repository
 from app.api.v1.routes import get_route_service, to_route_out
 from app.core.deps import CurrentUser, require_role
+from app.core.logging import get_logger, log_duration
 from app.models.audit_log import AuditAction
 from app.models.user import UserRole
 from app.repositories.user_repository import UserRepository
@@ -17,6 +19,7 @@ from app.services.route_rules import route_name as build_route_name
 from app.services.route_service import RouteService
 
 router = APIRouter(prefix="/imports", tags=["imports"])
+_imports_logger = get_logger("imports")
 
 
 def get_import_service(
@@ -40,6 +43,7 @@ async def import_routes_csv(
 ):
     csv_bytes = await file.read()
 
+    start = time.perf_counter()
     try:
         route_doc = await service.import_routes_csv(
             csv_bytes=csv_bytes,
@@ -51,10 +55,14 @@ async def import_routes_csv(
             created_by=current_user.id,
         )
     except CsvValidationError as exc:
+        elapsed_ms = (time.perf_counter() - start) * 1000
+        log_duration(_imports_logger, "csv route import", elapsed_ms)
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
             content={"message": "CSV doğrulama hataları bulundu.", "errors": exc.errors},
         )
+    elapsed_ms = (time.perf_counter() - start) * 1000
+    log_duration(_imports_logger, "csv route import", elapsed_ms)
 
     await audit_service.record(
         actor_user_id=current_user.id,

@@ -1496,6 +1496,73 @@
   let routesOffset = 0;
   const ROUTES_LIMIT = 20;
 
+  // --- Frontend console logger (F12 Console) ---
+  // Teknik/performans loglaridir; audit log (kullanici islem gecmisi) ile karistirilmamali.
+  // Hicbir zaman token, sifre, request body veya API key yazmaz - sadece method/path/durum/sure.
+
+  function _logTimestamp() {
+    return new Date().toTimeString().slice(0, 8);
+  }
+
+  function _formatDurationMs(elapsedMs) {
+    if (elapsedMs >= 1000) return `${(elapsedMs / 1000).toFixed(2)} s`;
+    return `${elapsedMs.toFixed(1)} ms`;
+  }
+
+  function logInfo(scope, message) {
+    console.log(`${_logTimestamp()} | INFO    | ${scope} | ${message}`);
+  }
+
+  function logWarn(scope, message) {
+    console.warn(`${_logTimestamp()} | WARNING | ${scope} | ${message}`);
+  }
+
+  function logError(scope, message) {
+    console.error(`${_logTimestamp()} | ERROR   | ${scope} | ${message}`);
+  }
+
+  function _logOperationDuration(scope, operationName, elapsedMs, slowThresholdMs) {
+    const durationText = _formatDurationMs(elapsedMs);
+    if (elapsedMs >= slowThresholdMs) {
+      logWarn(scope, `${operationName} took ${durationText} (slow, >${_formatDurationMs(slowThresholdMs)})`);
+    } else {
+      logInfo(scope, `${operationName} took ${durationText}`);
+    }
+  }
+
+  async function withTiming(scope, operationName, asyncFunction, slowThresholdMs = 1000) {
+    const start = performance.now();
+    try {
+      return await asyncFunction();
+    } finally {
+      _logOperationDuration(scope, operationName, performance.now() - start, slowThresholdMs);
+    }
+  }
+
+  // Butun fetch() cagrilarini tek noktadan yakalar, boylece mevcut fonksiyonlarin
+  // hicbirine dokunmadan her API cagrisi method/path/durum/sure ile loglanir.
+  const _nativeFetch = window.fetch.bind(window);
+  window.fetch = async function (input, init) {
+    const method = (init && init.method) || 'GET';
+    const urlString = typeof input === 'string' ? input : input.url;
+    const isApiCall = urlString.startsWith(API_BASE);
+    const path = isApiCall ? urlString.slice(API_BASE.length) : urlString;
+    const start = performance.now();
+
+    if (!isApiCall) {
+      return _nativeFetch(input, init);
+    }
+
+    try {
+      const response = await _nativeFetch(input, init);
+      _logOperationDuration('api', `${method} ${path} -> ${response.status}`, performance.now() - start, 1000);
+      return response;
+    } catch (err) {
+      logError('api', `${method} ${path} failed: ${err.message}`);
+      throw err;
+    }
+  };
+
   const ADMIN_MENU = [
     { key: 'yonetici-ozeti', label: 'Yönetici Özeti', icon: '📊' },
     { key: 'arac-onerisi', label: 'Akıllı Araç Önerisi', icon: '🧭' },
@@ -1541,7 +1608,10 @@
       el.classList.toggle('active', el.dataset.page === pageKey);
     });
 
-    if (pageKey === 'yonetici-ozeti') loadDashboardSummary();
+    const activeLink = document.querySelector(`.sidebar-link[data-page="${pageKey}"]`);
+    logInfo('page', `opened ${activeLink ? activeLink.textContent : pageKey}`);
+
+    if (pageKey === 'yonetici-ozeti') withTiming('page', 'dashboard load', () => loadDashboardSummary());
     else if (pageKey === 'rotalar') loadRoutes();
     else if (pageKey === 'araclar') loadVehiclesList();
     else if (pageKey === 'kurye-haritasi') loadDriverLocations();

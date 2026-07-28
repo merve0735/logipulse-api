@@ -1,11 +1,13 @@
 import json
 import logging
+import time
 from typing import Any
 
 from google import genai
 from google.genai import types as genai_types
 
 from app.core.config import settings
+from app.core.logging import get_logger, log_duration
 from app.models.ai import AiAdvisorContextUsed, AiAdvisorResponse
 from app.services.alert_service import AlertService
 from app.services.dashboard_service import DashboardService
@@ -13,6 +15,7 @@ from app.services.recommendation_service import RecommendationService
 from app.services.report_service import ReportService
 
 logger = logging.getLogger(__name__)
+_gemini_logger = get_logger("gemini")
 
 SYSTEM_INSTRUCTION = (
     "Sen LogiPulse için çalışan yeşil lojistik ve operasyon danışmanısın. "
@@ -103,6 +106,7 @@ class AiAdvisorService:
         )
 
     async def _call_gemini(self, prompt: str) -> str:
+        start = time.perf_counter()
         try:
             client = genai.Client(api_key=settings.GEMINI_API_KEY)
             response = await client.aio.models.generate_content(
@@ -114,3 +118,6 @@ class AiAdvisorService:
         except Exception as exc:
             logger.exception("Gemini API cagrisi basarisiz oldu.")
             raise GeminiRequestError() from exc
+        finally:
+            elapsed_ms = (time.perf_counter() - start) * 1000
+            log_duration(_gemini_logger, "ai advisor call", elapsed_ms)

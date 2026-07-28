@@ -1,3 +1,5 @@
+import time
+
 from fastapi import APIRouter, Depends, Response
 
 from app.api.v1.alerts import get_alert_service
@@ -5,6 +7,7 @@ from app.api.v1.audit_logs import get_audit_log_service
 from app.api.v1.dashboard import get_dashboard_service
 from app.api.v1.recommendations import get_recommendation_service
 from app.core.deps import CurrentUser, require_role
+from app.core.logging import get_logger, log_duration
 from app.models.audit_log import AuditAction
 from app.models.report import SustainabilityReport
 from app.models.user import UserRole
@@ -16,6 +19,7 @@ from app.services.report_pdf import build_sustainability_report_pdf
 from app.services.report_service import ReportService
 
 router = APIRouter(prefix="/reports", tags=["reports"])
+_reports_logger = get_logger("reports")
 
 
 def get_report_service(
@@ -41,7 +45,11 @@ async def get_sustainability_report_pdf(
     audit_service: AuditLogService = Depends(get_audit_log_service),
 ):
     report = await service.get_sustainability_report()
+
+    start = time.perf_counter()
     pdf_bytes = build_sustainability_report_pdf(report)
+    elapsed_ms = (time.perf_counter() - start) * 1000
+    log_duration(_reports_logger, "sustainability pdf generation", elapsed_ms)
 
     await audit_service.record(
         actor_user_id=current_user.id,

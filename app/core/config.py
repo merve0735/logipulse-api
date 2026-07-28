@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: Optional[str] = None
     GEMINI_MODEL: str = "gemini-3.6-flash"
 
+    LOG_LEVEL: str = "INFO"
+
     class Config:
         env_file = ".env"
 

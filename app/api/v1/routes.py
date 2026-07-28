@@ -1,3 +1,4 @@
+import time
 from typing import Optional
 
 from bson import ObjectId
@@ -8,6 +9,7 @@ from app.api.v1.audit_logs import get_audit_log_service
 from app.api.v1.auth import get_user_repository
 from app.api.v1.vehicles import get_vehicle_repository
 from app.core.deps import CurrentUser, get_current_user, require_role
+from app.core.logging import get_logger, log_duration
 from app.models.audit_log import AuditAction
 from app.models.route import AssignDriverRequest, RouteCreate, RouteOut, RouteStatus
 from app.models.route_filter import PaginatedRoutes, RouteFilter, RouteSortField, SortOrder
@@ -24,6 +26,7 @@ from app.services.route_service import RouteService
 from app.services.stop_service import StopService
 
 router = APIRouter(prefix="/routes", tags=["routes"])
+_routes_logger = get_logger("routes")
 
 
 def get_route_repository() -> RouteRepository:
@@ -92,7 +95,10 @@ async def create_route(
     service: RouteService = Depends(get_route_service),
     audit_service: AuditLogService = Depends(get_audit_log_service),
 ):
+    start = time.perf_counter()
     route_doc = await service.create_route(route_in, created_by=current_user.id)
+    elapsed_ms = (time.perf_counter() - start) * 1000
+    log_duration(_routes_logger, "create route", elapsed_ms)
 
     await audit_service.record(
         actor_user_id=current_user.id,

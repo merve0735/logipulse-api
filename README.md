@@ -132,6 +132,38 @@ Restart the API container after changing `.env`. Without a key, the endpoint (`P
 
 **What it does *not* send**: only aggregate/summary data goes to Gemini (totals, averages, alert/recommendation text, report summaries). Raw route or stop records — including customer names, phone numbers, and addresses — are never sent. The system instruction also tells Gemini to refuse requests for secrets, tokens, passwords, or its own prompt.
 
+## Application Logging
+
+LogiPulse has two separate logging systems that serve different purposes:
+
+- **Audit log** (`/api/v1/audit-logs`, "İşlem Geçmişi" in the demo panel) — a *business* record of who did what and when (route created, stop delivered, CSV imported, ...). It's stored in MongoDB and meant for admins.
+- **Application logging** (this section) — a *technical* record for developers: which endpoint was called, how long it took, and whether anything was unusually slow or failed. It's printed to the terminal (backend) and the browser console (frontend), and is not stored anywhere.
+
+**Backend terminal logs** (`docker compose logs api -f`, or just watch the terminal where the container runs) look like this:
+
+```
+10:36:42 | INFO    | api      | POST /api/v1/routes -> 201 took 245.7 ms
+10:36:43 | WARNING | api      | GET /api/v1/dashboard/summary -> 200 took 1.32 s (slow, >1.00 s)
+10:36:44 | INFO    | auth     | verify token took 1.8 ms
+10:36:45 | INFO    | gemini   | ai advisor call took 912.5 ms
+10:36:46 | ERROR   | api      | POST /api/v1/routes failed: ...
+```
+
+Every API request is logged automatically (method, path, status, duration). Requests slower than 1 second are logged as `WARNING` instead of `INFO`, so slow endpoints stand out at a glance. A few specific operations also get their own timing line: JWT verification (`auth`), the Gemini call (`gemini`), CSV import (`imports`), PDF generation and route creation (`reports`/`routes`). None of these logs ever include the request body, passwords, tokens, or the Gemini API key — only method/path/status/duration.
+
+Control the verbosity with the `LOG_LEVEL` environment variable in `.env` (`INFO` by default; set to `WARNING` to only see slow requests and errors).
+
+**Frontend console logs**: open the browser DevTools (F12) → Console tab while using the demo panel. Every request the panel makes to the API is logged the same way, plus page navigation:
+
+```
+10:36:35 | INFO    | page     | opened Yönetici Özeti
+10:36:35 | INFO    | page     | dashboard load took 220.5 ms
+10:36:42 | WARNING | api      | GET /api/v1/dashboard/summary -> 200 took 1.24 s (slow, >1.00 s)
+10:36:43 | INFO    | api      | POST /api/v1/ai/advisor -> 200 took 945.8 ms
+```
+
+Slow calls (>1 second) print with `console.warn`, so they show up highlighted (usually yellow) in the browser console. Like the backend, these logs never include tokens, passwords, or request bodies.
+
 ## Running Tests
 
 Tests use a separate database (`logipulse_test`) and never touch the real data.
