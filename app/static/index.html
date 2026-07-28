@@ -745,6 +745,25 @@
     <div id="tracking-no-location-list" style="margin-top: 10px; font-size: 13px; color: var(--muted);"></div>
   </div>
 
+  <div class="card hidden" id="driver-map-card" data-page="teslimat-haritasi">
+    <div class="page-header">
+      <div class="page-header-icon">🗺️</div>
+      <div class="page-header-text">
+        <h2>Teslimat Haritası</h2>
+        <p>Kendi konumunuz ve teslimat yapacağınız duraklar</p>
+      </div>
+    </div>
+    <button class="secondary" onclick="loadDriverMap()">Haritayı Yenile</button>
+    <div id="driver-map" style="height: 360px; border-radius: 8px; margin-top: 10px;"></div>
+    <div id="driver-map-empty-msg" class="msg hidden">Aktif rotanızda konumu bilinen durak bulunmuyor.</div>
+    <div class="row" style="margin-top: 10px; font-size: 12px; color: var(--muted); gap: 16px;">
+      <span>🔵 Konumunuz</span>
+      <span>🟢 Bekleyen durak</span>
+      <span>✅ Teslim edilen durak</span>
+      <span>🔴 Başarısız/atlanan durak</span>
+    </div>
+  </div>
+
   <div class="card hidden" id="driver-location-card" data-page="konum-guncelle">
     <div class="page-header">
       <div class="page-header-icon">📍</div>
@@ -1494,6 +1513,7 @@
 
   const DRIVER_MENU = [
     { key: 'rotalar', label: 'Rotalarım', icon: '🛣️' },
+    { key: 'teslimat-haritasi', label: 'Teslimat Haritası', icon: '🗺️' },
     { key: 'konum-guncelle', label: 'Konumumu Güncelle', icon: '📍' },
   ];
 
@@ -1525,6 +1545,7 @@
     else if (pageKey === 'rotalar') loadRoutes();
     else if (pageKey === 'araclar') loadVehiclesList();
     else if (pageKey === 'kurye-haritasi') loadDriverLocations();
+    else if (pageKey === 'teslimat-haritasi') loadDriverMap();
     else if (pageKey === 'uyarilar') loadAlerts();
     else if (pageKey === 'oneriler') loadRecommendations();
     else if (pageKey === 'rapor') loadSustainabilityReport();
@@ -2880,6 +2901,88 @@
     if (trackingAutoRefreshInterval) {
       clearInterval(trackingAutoRefreshInterval);
       trackingAutoRefreshInterval = null;
+    }
+  }
+
+  let driverMap = null;
+  let driverMapMarkers = [];
+
+  function initDriverMap() {
+    if (driverMap) return;
+    driverMap = L.map('driver-map').setView([39.0, 35.0], 6);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors',
+    }).addTo(driverMap);
+  }
+
+  function driverMapEmojiIcon(emoji) {
+    return L.divIcon({
+      html: `<div style="font-size: 20px; line-height: 1;">${emoji}</div>`,
+      className: '',
+      iconSize: [22, 22],
+      iconAnchor: [11, 11],
+    });
+  }
+
+  async function loadDriverMap() {
+    initDriverMap();
+    setTimeout(() => driverMap.invalidateSize(), 0);
+    driverMapMarkers.forEach((m) => driverMap.removeLayer(m));
+    driverMapMarkers = [];
+
+    const bounds = [];
+
+    const res = await fetch(`${API_BASE}/api/v1/routes/my-routes?limit=100`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const activeRoutes = data.items.filter((r) => ['assigned', 'in_progress'].includes(r.status));
+      activeRoutes.forEach((r) => {
+        r.stops.forEach((s) => {
+          if (s.latitude === null || s.latitude === undefined || s.longitude === null || s.longitude === undefined) {
+            return;
+          }
+          let icon = '🟢';
+          if (s.status === 'delivered') icon = '✅';
+          else if (s.status === 'failed' || s.status === 'skipped') icon = '🔴';
+          const marker = L.marker([s.latitude, s.longitude], { icon: driverMapEmojiIcon(icon) }).addTo(driverMap);
+          marker.bindPopup(`
+            <strong>#${s.sequence_number} ${s.customer_name}</strong><br>
+            ${s.address}<br>
+            ${r.origin} → ${r.destination}<br>
+            Durum: ${stopStatusLabels[s.status] || s.status}
+          `);
+          driverMapMarkers.push(marker);
+          bounds.push([s.latitude, s.longitude]);
+        });
+      });
+    }
+
+    document.getElementById('driver-map-empty-msg').classList.toggle('hidden', bounds.length > 0);
+
+    const finishWithBounds = () => {
+      if (bounds.length > 0) {
+        driverMap.fitBounds(bounds, { maxZoom: 13, padding: [30, 30] });
+      }
+    };
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const selfMarker = L.marker([position.coords.latitude, position.coords.longitude], {
+            icon: driverMapEmojiIcon('🔵'),
+          }).addTo(driverMap);
+          selfMarker.bindPopup('Konumunuz');
+          driverMapMarkers.push(selfMarker);
+          bounds.push([position.coords.latitude, position.coords.longitude]);
+          finishWithBounds();
+        },
+        finishWithBounds
+      );
+    } else {
+      finishWithBounds();
     }
   }
 
