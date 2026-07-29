@@ -2,6 +2,7 @@ import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.api.v1.health import router as health_router
@@ -21,7 +22,21 @@ async def lifespan(app: FastAPI):
     await close_mongo_connection()
 
 
-app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
+# Production'da Swagger/ReDoc kapali kalir; local/staging'de acik kalmaya devam eder.
+app = FastAPI(
+    title=settings.PROJECT_NAME,
+    lifespan=lifespan,
+    docs_url=None if settings.is_production else "/docs",
+    redoc_url=None if settings.is_production else "/redoc",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins_list,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.middleware("http")
@@ -40,5 +55,5 @@ async def log_requests(request: Request, call_next):
 
 
 app.include_router(health_router)
-app.include_router(api_router, prefix="/api/v1")
+app.include_router(api_router, prefix=settings.API_PREFIX)
 app.mount("/demo", StaticFiles(directory="app/static", html=True), name="demo")

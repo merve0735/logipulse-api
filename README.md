@@ -164,6 +164,53 @@ Control the verbosity with the `LOG_LEVEL` environment variable in `.env` (`INFO
 
 Slow calls (>1 second) print with `console.warn`, so they show up highlighted (usually yellow) in the browser console. Like the backend, these logs never include tokens, passwords, or request bodies.
 
+## Production / Deployment Preparation
+
+This section prepares the project to be deployed later — it does not deploy it. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the full guide; this is the short version.
+
+**1. Create your `.env`** (never commit it — it's already gitignored):
+
+```bash
+cp .env.example .env
+```
+
+**2. Set production-appropriate values** in that `.env`:
+
+- `ENVIRONMENT=production` — disables Swagger (`/docs`) and ReDoc
+- `JWT_SECRET_KEY` — a long random value (e.g. `openssl rand -hex 32`), never the example value
+- `MONGO_URI` / `MONGO_INITDB_ROOT_USERNAME` / `MONGO_INITDB_ROOT_PASSWORD` — real credentials, kept in sync with each other
+- `CORS_ORIGINS` — only your real frontend/demo-panel domain(s), comma-separated, never `*`
+- `GEMINI_API_KEY` — your real key, or leave empty to disable the AI Advisor
+- `LOG_LEVEL` — `INFO` is a reasonable default
+
+**3. Build and run the production stack** (`Dockerfile.prod` + `docker-compose.prod.yml` — no `--reload`, no source bind-mount, MongoDB's port is not published to the host):
+
+```bash
+docker compose -f docker-compose.prod.yml up --build -d
+```
+
+**4. Watch the logs:**
+
+```bash
+docker compose -f docker-compose.prod.yml logs api -f
+```
+
+**5. Run the test suite before deploying** — the production image intentionally does not include the `tests/` folder or dev tooling (see `.dockerignore`), so tests run the normal way, against the dev stack (or in CI, as already covered by GitHub Actions):
+
+```bash
+docker compose exec api pytest -q
+```
+
+**Security notes** (also covered in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)):
+
+- `JWT_SECRET_KEY` must be a strong, random value in production — never the example key.
+- `GEMINI_API_KEY` must never be committed to the repo; it only lives in `.env` / your host's secret store.
+- `.env` itself must never be committed (already covered by `.gitignore` — double-check before pushing).
+- `CORS_ORIGINS` must be limited to your real domain(s) — do not use `*` in production.
+- MongoDB must not be exposed to the public internet; `docker-compose.prod.yml` already keeps its port internal to the Docker network.
+- Driver location data is personal data under KVKK — see the KVKK note earlier in this README and in [docs/TECH_DECISIONS.md](docs/TECH_DECISIONS.md) before using this with real drivers.
+- The seeded demo accounts (`admin@logipulse.demo`, `driver1@logipulse.demo`, ...) are for local demos only — don't rely on them in a real deployment.
+
 ## Running Tests
 
 Tests use a separate database (`logipulse_test`) and never touch the real data.
@@ -210,3 +257,4 @@ Possible next improvements:
 - [docs/FEATURES.md](docs/FEATURES.md) — features explained in plain language
 - [docs/DEMO_GUIDE.md](docs/DEMO_GUIDE.md) — suggested order for demoing the project
 - [docs/TECH_DECISIONS.md](docs/TECH_DECISIONS.md) — why each technology was chosen
+- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — production preparation, environment variables, security checklist

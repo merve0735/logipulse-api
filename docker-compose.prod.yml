@@ -1,0 +1,50 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    container_name: logipulse_api_prod
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  mongodb:
+    image: mongo:6.0
+    container_name: logipulse_db_prod
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+    # Not: Mongo portu bilerek host'a acilmiyor (dev compose'un aksine).
+    # api servisi Mongo'ya Docker'in ic aginda "mongodb" servis adiyla erisir.
+    volumes:
+      - mongo_data_prod:/data/db
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mongosh",
+          "--quiet",
+          "-u", "${MONGO_INITDB_ROOT_USERNAME}",
+          "-p", "${MONGO_INITDB_ROOT_PASSWORD}",
+          "--authenticationDatabase", "admin",
+          "--eval", "db.adminCommand('ping')",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  mongo_data_prod:
