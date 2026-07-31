@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.api.v1.health import router as health_router
@@ -52,6 +53,11 @@ async def log_requests(request: Request, call_next):
     operation_name = f"{request.method} {request.url.path} -> {response.status_code}"
     log_duration(_api_logger, operation_name, elapsed_ms)
     return response
+
+
+@app.get("/", include_in_schema=False)
+async def root():
+    return RedirectResponse(url="/demo/")
 
 
 app.include_router(health_router)
