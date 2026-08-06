@@ -20,6 +20,10 @@ class UserLogin(BaseModel):
     password: str
 
 
+class UserUpdate(BaseModel):
+    full_name: str = Field(min_length=1)
+
+
 class UserOut(BaseModel):
     id: str
     full_name: str

@@ -4,6 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>LogiPulse — Demo Paneli</title>
+<script>
+  // Tema tercihini CSS/gövde yüklenmeden önce uygular, aksi halde ilk anda yanlış tema görünüp
+  // sonra doğrusuna geçebilir (flash of wrong theme). "system" seçiliyken hiç öznitelik eklenmez,
+  // bu durumda aşağıdaki @media (prefers-color-scheme) kuralı devreye girer.
+  (function () {
+    try {
+      var pref = localStorage.getItem('logipulse_theme');
+      if (pref === 'dark' || pref === 'light') {
+        document.documentElement.setAttribute('data-theme', pref);
+      }
+    } catch (e) {}
+  })();
+</script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
@@ -19,7 +32,80 @@
     --muted: #6b7280;
     --border: #e5e7eb;
     --danger: #dc2626;
+
+    /* Yardımcı yüzeyler - dark tema desteği için ayrıca tanımlanır */
+    --surface-muted: #f9fafb;
+    --surface-hover: #fafbfc;
+    --info-bg: #e0f2fe;
+    --info-text: #075985;
+    --warning-bg: #fffbeb;
+    --warning-border: #fde68a;
+    --warning-text: #92400e;
+    --warning-accent: #d97706;
+    --success-border: #bbf7d0;
+    --danger-bg: #fef2f2;
+    --danger-border: #fecaca;
+    --shadow-color: rgba(15, 23, 42, 0.04);
+    --stat-value-text: var(--navy);
   }
+
+  /* --- Dark tema token'ları --- */
+  :root[data-theme="dark"] {
+    --primary: #22c55e;
+    --primary-dark: #4ade80;
+    --primary-light: #0f2a1a;
+    --navy: #0b1220;
+    --navy-soft: #17202f;
+    --bg: #0e131a;
+    --card-bg: #171e28;
+    --text: #e7ebf2;
+    --muted: #97a3b6;
+    --border: #2a3341;
+    --danger: #f87171;
+    --surface-muted: #1b232f;
+    --surface-hover: #1e2733;
+    --info-bg: #12293d;
+    --info-text: #7dd3fc;
+    --warning-bg: #2b2210;
+    --warning-border: #4a3a12;
+    --warning-text: #fbbf24;
+    --warning-accent: #f59e0b;
+    --success-border: #14532d;
+    --danger-bg: #2a1416;
+    --danger-border: #4a1f22;
+    --shadow-color: rgba(0, 0, 0, 0.35);
+    --stat-value-text: #eafff1;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --primary: #22c55e;
+      --primary-dark: #4ade80;
+      --primary-light: #0f2a1a;
+      --navy: #0b1220;
+      --navy-soft: #17202f;
+      --bg: #0e131a;
+      --card-bg: #171e28;
+      --text: #e7ebf2;
+      --muted: #97a3b6;
+      --border: #2a3341;
+      --danger: #f87171;
+      --surface-muted: #1b232f;
+      --surface-hover: #1e2733;
+      --info-bg: #12293d;
+      --info-text: #7dd3fc;
+      --warning-bg: #2b2210;
+      --warning-border: #4a3a12;
+      --warning-text: #fbbf24;
+      --warning-accent: #f59e0b;
+      --success-border: #14532d;
+      --danger-bg: #2a1416;
+      --danger-border: #4a1f22;
+      --shadow-color: rgba(0, 0, 0, 0.35);
+      --stat-value-text: #eafff1;
+    }
+  }
+
   * { box-sizing: border-box; }
   body {
     margin: 0;
@@ -46,7 +132,7 @@
     border: 1px solid var(--border);
     border-radius: 12px;
     padding: 22px 26px;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    box-shadow: 0 1px 2px var(--shadow-color);
   }
   .card h2 { margin-top: 0; font-size: 16px; }
   .page-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 18px; }
@@ -107,12 +193,12 @@
     flex: 1;
     min-width: 150px;
     background: var(--primary-light);
-    border: 1px solid #bbf7d0;
+    border: 1px solid var(--success-border);
     border-radius: 10px;
     padding: 14px 16px;
     transition: transform 0.1s ease;
   }
-  .stat .box .value { font-size: 24px; font-weight: 700; color: var(--navy); }
+  .stat .box .value { font-size: 24px; font-weight: 700; color: var(--stat-value-text); }
   .stat .box .label { font-size: 12px; color: var(--muted); margin-top: 2px; }
   table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
   th, td { text-align: left; padding: 10px 10px; border-bottom: 1px solid var(--border); }
@@ -123,7 +209,7 @@
     text-transform: uppercase;
     letter-spacing: 0.03em;
   }
-  tbody tr:hover { background: #fafbfc; }
+  tbody tr:hover { background: var(--surface-hover); }
   td button { margin-top: 0; padding: 4px 10px; font-size: 12px; }
   .badge {
     display: inline-block;
@@ -131,13 +217,13 @@
     border-radius: 999px;
     font-size: 11px;
     font-weight: 600;
-    background: #e0f2fe;
-    color: #075985;
+    background: var(--info-bg);
+    color: var(--info-text);
   }
   .info-box {
     flex: 1;
     min-width: 200px;
-    background: #f9fafb;
+    background: var(--surface-muted);
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 12px 14px;
@@ -153,7 +239,7 @@
     font-size: 13px;
   }
   .alert-card.high { border-left-color: var(--danger); }
-  .alert-card.medium { border-left-color: #d97706; }
+  .alert-card.medium { border-left-color: var(--warning-accent); }
   .alert-card.low { border-left-color: var(--muted); }
   .alert-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
   .alert-type { font-size: 11px; color: var(--muted); text-transform: uppercase; }
@@ -166,7 +252,7 @@
     color: white;
   }
   .severity-badge.high { background: var(--danger); }
-  .severity-badge.medium { background: #d97706; }
+  .severity-badge.medium { background: var(--warning-accent); }
   .severity-badge.low { background: var(--muted); }
   .userbar {
     display: flex;
@@ -252,6 +338,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
+    row-gap: 8px;
     background: var(--card-bg);
     border-bottom: 1px solid var(--border);
     padding: 12px 22px;
@@ -261,6 +349,58 @@
   }
   .topbar-left { display: flex; align-items: center; gap: 12px; }
   .topbar-title { font-weight: 700; font-size: 16px; color: var(--navy); }
+  .topbar-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; row-gap: 8px; justify-content: flex-end; }
+  .topbar-controls { display: flex; align-items: center; gap: 8px; }
+  .lang-toggle, .theme-toggle {
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    overflow: hidden;
+  }
+  .lang-btn, .theme-btn {
+    margin-top: 0;
+    background: transparent;
+    color: var(--muted);
+    border: none;
+    border-radius: 0;
+    padding: 5px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .theme-btn { font-size: 13px; padding: 5px 7px; }
+  .lang-btn + .lang-btn, .theme-btn + .theme-btn { border-left: 1px solid var(--border); }
+  .lang-btn.active, .theme-btn.active { background: var(--primary-light); color: var(--primary-dark); }
+  @media (max-width: 640px) {
+    .topbar-controls .theme-toggle { display: none; }
+  }
+  .settings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+  }
+  .settings-section {
+    background: var(--surface-muted);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+  .settings-section h3 { margin: 0 0 12px; font-size: 14px; }
+  .settings-section label { margin-top: 10px; }
+  .settings-section label:first-of-type { margin-top: 0; }
+  .settings-theme-toggle, .settings-lang-toggle { margin-top: 4px; }
+  .settings-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .settings-info-row:last-child { border-bottom: none; }
+  .settings-info-row strong { color: var(--text); font-weight: 600; }
   .topbar-role-pill {
     display: inline-block;
     padding: 2px 9px;
@@ -428,8 +568,8 @@
     border-top-right-radius: 4px;
   }
   .ai-msg.error-msg .ai-msg-bubble {
-    background: #fef2f2;
-    border: 1px solid #fecaca;
+    background: var(--danger-bg);
+    border: 1px solid var(--danger-border);
     color: var(--danger);
     border-top-left-radius: 4px;
   }
@@ -602,16 +742,16 @@
     gap: 6px;
     cursor: pointer;
   }
-  .role-select-btn:hover { background: #eef2f5; }
+  .role-select-btn:hover { background: var(--surface-hover); }
   .role-select-btn.active { background: var(--navy); color: white; border-color: var(--navy); }
   #role-mismatch-banner {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 10px;
-    background: #fffbeb;
-    border: 1px solid #fde68a;
-    color: #92400e;
+    background: var(--warning-bg);
+    border: 1px solid var(--warning-border);
+    color: var(--warning-text);
     border-radius: 8px;
     padding: 10px 14px;
     font-size: 13px;
@@ -620,7 +760,7 @@
   #role-mismatch-banner button {
     margin: 0;
     background: transparent;
-    color: #92400e;
+    color: var(--warning-text);
     border: none;
     font-size: 16px;
     padding: 0 4px;
@@ -642,13 +782,13 @@
     <div class="auth-brand-logo">
       <svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 12c3-6 6-9 9-9s6 3 9 9c-3 6-6 9-9 9s-6-3-9-9Z" stroke="white" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="12" r="2.75" fill="white"/></svg>
     </div>
-    <span class="auth-brand-eyebrow">Operasyon Platformu</span>
+    <span class="auth-brand-eyebrow" data-i18n="auth.eyebrow">Operasyon Platformu</span>
     <h1>LogiPulse</h1>
-    <p class="auth-brand-tagline">Rota, araç, kurye ve teslimat verilerinizi tek panelde toplayın; kârlılığı ve karbon etkisini birlikte yönetin.</p>
+    <p class="auth-brand-tagline" data-i18n="auth.tagline">Rota, araç, kurye ve teslimat verilerinizi tek panelde toplayın; kârlılığı ve karbon etkisini birlikte yönetin.</p>
     <ul class="auth-brand-features">
-      <li><span class="auth-brand-feature-icon">🛣️</span> Rota, araç ve teslimat takibi tek panelde</li>
-      <li><span class="auth-brand-feature-icon">🌱</span> Kâr ve karbon etkisini birlikte optimize edin</li>
-      <li><span class="auth-brand-feature-icon">✦</span> Gemini destekli AI Danışman ile anında analiz</li>
+      <li><span class="auth-brand-feature-icon">🛣️</span> <span data-i18n="auth.feature1_text">Rota, araç ve teslimat takibi tek panelde</span></li>
+      <li><span class="auth-brand-feature-icon">🌱</span> <span data-i18n="auth.feature2_text">Kâr ve karbon etkisini birlikte optimize edin</span></li>
+      <li><span class="auth-brand-feature-icon">✦</span> <span data-i18n="auth.feature3_text">Gemini destekli AI Danışman ile anında analiz</span></li>
     </ul>
   </div>
 </header>
@@ -657,42 +797,42 @@
 
   <div class="card" id="auth-card">
     <div class="auth-card-header">
-      <h2>Hoş geldiniz</h2>
-      <p>Devam etmek için giriş yapın veya yeni hesap oluşturun.</p>
+      <h2 data-i18n="auth.welcome">Hoş geldiniz</h2>
+      <p data-i18n="auth.welcome_sub">Devam etmek için giriş yapın veya yeni hesap oluşturun.</p>
     </div>
     <div class="tabs">
-      <button id="tab-login" class="active" onclick="switchTab('login')">Giriş Yap</button>
-      <button id="tab-register" onclick="switchTab('register')">Kayıt Ol</button>
+      <button id="tab-login" class="active" onclick="switchTab('login')" data-i18n="auth.tab_login">Giriş Yap</button>
+      <button id="tab-register" onclick="switchTab('register')" data-i18n="auth.tab_register">Kayıt Ol</button>
     </div>
 
     <div id="login-form">
-      <label>Giriş Türü</label>
+      <label data-i18n="auth.login_role_label">Giriş Türü</label>
       <div class="role-select" id="login-role-select">
-        <button type="button" class="role-select-btn active" data-role="admin" onclick="selectLoginRole('admin')">🧭 Yönetici Girişi</button>
-        <button type="button" class="role-select-btn" data-role="driver" onclick="selectLoginRole('driver')">🚴 Kurye Girişi</button>
+        <button type="button" class="role-select-btn active" data-role="admin" onclick="selectLoginRole('admin')" data-i18n="auth.role_admin">🧭 Yönetici Girişi</button>
+        <button type="button" class="role-select-btn" data-role="driver" onclick="selectLoginRole('driver')" data-i18n="auth.role_driver">🚴 Kurye Girişi</button>
       </div>
-      <label>E-posta</label>
-      <input type="email" id="login-email" placeholder="ornek@sirket.com" value="admin@logipulse.demo">
-      <label>Şifre</label>
-      <input type="password" id="login-password" placeholder="••••••••" value="Demo1234">
-      <button onclick="login()">Giriş Yap</button>
+      <label data-i18n="auth.email_label">E-posta</label>
+      <input type="email" id="login-email" data-i18n-placeholder="auth.email_placeholder" placeholder="ornek@sirket.com" value="admin@logipulse.demo">
+      <label data-i18n="auth.password_label">Şifre</label>
+      <input type="password" id="login-password" data-i18n-placeholder="auth.password_placeholder" placeholder="••••••••" value="Demo1234">
+      <button onclick="login()" data-i18n="auth.login_submit">Giriş Yap</button>
       <div id="login-msg" class="msg"></div>
     </div>
 
     <div id="register-form" class="hidden">
-      <label>Ad Soyad / Şirket Yetkilisi</label>
-      <input type="text" id="reg-name" placeholder="Örn: Merve Sena Doğan">
-      <label>Rol</label>
+      <label data-i18n="auth.fullname_label">Ad Soyad / Şirket Yetkilisi</label>
+      <input type="text" id="reg-name" data-i18n-placeholder="auth.fullname_placeholder" placeholder="Örn: Merve Sena Doğan">
+      <label data-i18n="auth.role_label">Rol</label>
       <div class="role-select" id="reg-role-select">
-        <button type="button" class="role-select-btn active" data-role="admin" onclick="selectRegisterRole('admin')">🧭 Yönetici</button>
-        <button type="button" class="role-select-btn" data-role="driver" onclick="selectRegisterRole('driver')">🚴 Kurye</button>
+        <button type="button" class="role-select-btn active" data-role="admin" onclick="selectRegisterRole('admin')" data-i18n="auth.role_admin_register">🧭 Yönetici</button>
+        <button type="button" class="role-select-btn" data-role="driver" onclick="selectRegisterRole('driver')" data-i18n="auth.role_driver_register">🚴 Kurye</button>
       </div>
       <input type="hidden" id="reg-role" value="admin">
-      <label>E-posta</label>
-      <input type="email" id="reg-email" placeholder="ornek@sirket.com">
-      <label>Şifre</label>
-      <input type="password" id="reg-password" placeholder="En az 6 karakter">
-      <button onclick="register()">Kayıt Ol</button>
+      <label data-i18n="auth.email_label">E-posta</label>
+      <input type="email" id="reg-email" data-i18n-placeholder="auth.email_placeholder" placeholder="ornek@sirket.com">
+      <label data-i18n="auth.password_label">Şifre</label>
+      <input type="password" id="reg-password" data-i18n-placeholder="auth.register_password_placeholder" placeholder="En az 6 karakter">
+      <button onclick="register()" data-i18n="auth.register_submit">Kayıt Ol</button>
       <div id="register-msg" class="msg"></div>
     </div>
   </div>
@@ -715,32 +855,45 @@
   <div id="app-main">
     <header id="topbar">
       <div class="topbar-left">
-        <button id="hamburger-btn" onclick="toggleMobileSidebar()" aria-label="Menü">☰</button>
+        <button id="hamburger-btn" onclick="toggleMobileSidebar()" data-i18n-aria-label="topbar.menu_aria" aria-label="Menü">☰</button>
         <span class="topbar-title">LogiPulse</span>
       </div>
-      <div class="card hidden" id="dashboard-card">
-        <div class="userbar">
-          <span id="user-info"></span>
-          <button class="secondary" onclick="logout()">Çıkış Yap</button>
+      <div class="topbar-right">
+        <div class="topbar-controls">
+          <div class="lang-toggle" role="group" aria-label="TR / EN">
+            <button type="button" class="lang-btn" data-lang-option="tr" onclick="setLang('tr')">TR</button>
+            <button type="button" class="lang-btn" data-lang-option="en" onclick="setLang('en')">EN</button>
+          </div>
+          <div class="theme-toggle" role="group" aria-label="Tema">
+            <button type="button" class="theme-btn" data-theme-option="light" onclick="setTheme('light')" title="Light">☀️</button>
+            <button type="button" class="theme-btn" data-theme-option="dark" onclick="setTheme('dark')" title="Dark">🌙</button>
+            <button type="button" class="theme-btn" data-theme-option="system" onclick="setTheme('system')" title="System">💻</button>
+          </div>
+        </div>
+        <div class="card hidden" id="dashboard-card">
+          <div class="userbar">
+            <span id="user-info"></span>
+            <button class="secondary" onclick="logout()" data-i18n="topbar.logout">Çıkış Yap</button>
+          </div>
         </div>
       </div>
     </header>
     <main id="page-content">
 
   <div id="role-mismatch-banner" class="hidden">
-    <span>Bu hesap seçilen rol ile eşleşmiyor.</span>
-    <button type="button" onclick="document.getElementById('role-mismatch-banner').classList.add('hidden')" aria-label="Kapat">×</button>
+    <span data-i18n="banner.role_mismatch">Bu hesap seçilen rol ile eşleşmiyor.</span>
+    <button type="button" onclick="document.getElementById('role-mismatch-banner').classList.add('hidden')" data-i18n-aria-label="banner.close_aria" aria-label="Kapat">×</button>
   </div>
 
   <div class="card hidden" id="tracking-map-card" data-page="kurye-haritasi">
     <div class="page-header">
       <div class="page-header-icon">📍</div>
       <div class="page-header-text">
-        <h2>Canlı Kurye Haritası</h2>
-        <p>Operasyon takip ekranı — sürücülerin anlık konumu ve aktif rotaları</p>
+        <h2 data-i18n="page.kurye-haritasi.title">Canlı Kurye Haritası</h2>
+        <p data-i18n="page.kurye-haritasi.subtitle">Operasyon takip ekranı — sürücülerin anlık konumu ve aktif rotaları</p>
       </div>
     </div>
-    <button class="secondary" onclick="loadDriverLocations()">Konumları Yenile</button>
+    <button class="secondary" onclick="loadDriverLocations()" data-i18n="button.refresh_locations">Konumları Yenile</button>
     <div id="tracking-map" style="height: 360px; border-radius: 8px; margin-top: 10px;"></div>
     <div id="tracking-no-location-list" style="margin-top: 10px; font-size: 13px; color: var(--muted);"></div>
   </div>
@@ -749,11 +902,11 @@
     <div class="page-header">
       <div class="page-header-icon">🗺️</div>
       <div class="page-header-text">
-        <h2>Teslimat Haritası</h2>
-        <p>Kendi konumunuz ve teslimat yapacağınız duraklar</p>
+        <h2 data-i18n="page.teslimat-haritasi.title">Teslimat Haritası</h2>
+        <p data-i18n="page.teslimat-haritasi.subtitle">Kendi konumunuz ve teslimat yapacağınız duraklar</p>
       </div>
     </div>
-    <button class="secondary" onclick="loadDriverMap()">Haritayı Yenile</button>
+    <button class="secondary" onclick="loadDriverMap()" data-i18n="button.refresh_map">Haritayı Yenile</button>
     <div id="driver-map" style="height: 360px; border-radius: 8px; margin-top: 10px;"></div>
     <div id="driver-map-empty-msg" class="msg hidden">Aktif rotanızda konumu bilinen durak bulunmuyor.</div>
     <div class="row" style="margin-top: 10px; font-size: 12px; color: var(--muted); gap: 16px;">
@@ -768,22 +921,22 @@
     <div class="page-header">
       <div class="page-header-icon">📍</div>
       <div class="page-header-text">
-        <h2>Konumumu Güncelle</h2>
-        <p>Anlık konumunuzu paylaşın, yöneticiler haritada görsün</p>
+        <h2 data-i18n="page.konum-guncelle.title">Konumumu Güncelle</h2>
+        <p data-i18n="page.konum-guncelle.subtitle">Anlık konumunuzu paylaşın, yöneticiler haritada görsün</p>
       </div>
     </div>
     <div class="row">
       <div>
-        <label>Enlem (latitude)</label>
+        <label data-i18n="label.latitude">Enlem (latitude)</label>
         <input type="number" step="any" id="my-location-lat" placeholder="36.8841">
       </div>
       <div>
-        <label>Boylam (longitude)</label>
+        <label data-i18n="label.longitude">Boylam (longitude)</label>
         <input type="number" step="any" id="my-location-lng" placeholder="30.7056">
       </div>
     </div>
-    <button type="button" class="secondary" onclick="useBrowserLocation()">📍 Tarayıcıdan Konumumu Al</button>
-    <button onclick="submitMyLocation()">Konum Gönder</button>
+    <button type="button" class="secondary" onclick="useBrowserLocation()" data-i18n="button.get_browser_location">📍 Tarayıcıdan Konumumu Al</button>
+    <button onclick="submitMyLocation()" data-i18n="button.send_location">Konum Gönder</button>
     <div id="my-location-msg" class="msg"></div>
   </div>
 
@@ -791,8 +944,8 @@
     <div class="page-header">
       <div class="page-header-icon">📊</div>
       <div class="page-header-text">
-        <h2>Yönetici Özeti</h2>
-        <p>Filo genelinde kâr, karbon ve teslimat performansı</p>
+        <h2 data-i18n="page.yonetici-ozeti.title">Yönetici Özeti</h2>
+        <p data-i18n="page.yonetici-ozeti.subtitle">Filo genelinde kâr, karbon ve teslimat performansı</p>
       </div>
     </div>
     <div id="summary-empty-msg" class="msg hidden">Henüz raporlanacak rota yok.</div>
@@ -800,48 +953,48 @@
       <div class="stat">
         <div class="box">
           <div class="value" id="sum-total-routes">0</div>
-          <div class="label">Toplam Rota</div>
+          <div class="label" data-i18n="stat.total_routes">Toplam Rota</div>
         </div>
         <div class="box">
           <div class="value" id="sum-total-distance">0</div>
-          <div class="label">Toplam Mesafe (km)</div>
+          <div class="label" data-i18n="stat.total_distance">Toplam Mesafe (km)</div>
         </div>
         <div class="box">
           <div class="value" id="sum-total-revenue">0</div>
-          <div class="label">Toplam Gelir (TL)</div>
+          <div class="label" data-i18n="stat.total_revenue">Toplam Gelir (TL)</div>
         </div>
         <div class="box">
           <div class="value" id="sum-total-cost">0</div>
-          <div class="label">Toplam Maliyet (TL)</div>
+          <div class="label" data-i18n="stat.total_cost">Toplam Maliyet (TL)</div>
         </div>
         <div class="box">
           <div class="value" id="sum-total-profit">0</div>
-          <div class="label">Toplam Kâr (TL)</div>
+          <div class="label" data-i18n="stat.total_profit">Toplam Kâr (TL)</div>
         </div>
         <div class="box">
           <div class="value" id="sum-total-carbon">0</div>
-          <div class="label">Toplam Karbon (kg)</div>
+          <div class="label" data-i18n="stat.total_carbon">Toplam Karbon (kg)</div>
         </div>
       </div>
 
       <div class="stat" style="margin-top: 16px;">
         <div class="box">
           <div class="value" id="sum-avg-profit">0</div>
-          <div class="label">Rota Başına Ortalama Kâr (TL)</div>
+          <div class="label" data-i18n="stat.avg_profit_per_route">Rota Başına Ortalama Kâr (TL)</div>
         </div>
         <div class="box">
           <div class="value" id="sum-avg-carbon">0</div>
-          <div class="label">Rota Başına Ortalama Karbon (kg)</div>
+          <div class="label" data-i18n="stat.avg_carbon_per_route">Rota Başına Ortalama Karbon (kg)</div>
         </div>
       </div>
 
       <div class="row" style="margin-top: 16px;">
         <div class="info-box">
-          <strong>En Kârlı Rota</strong>
+          <strong data-i18n="stat.best_route">En Kârlı Rota</strong>
           <div id="sum-best-route-detail">—</div>
         </div>
         <div class="info-box">
-          <strong>En Zararlı Rota</strong>
+          <strong data-i18n="stat.worst_route">En Zararlı Rota</strong>
           <div id="sum-worst-route-detail">—</div>
         </div>
       </div>
@@ -849,48 +1002,48 @@
       <div class="stat" style="margin-top: 16px;">
         <div class="box">
           <div class="value" id="sum-electric-count">0</div>
-          <div class="label">Elektrikli Rota</div>
+          <div class="label" data-i18n="stat.electric_routes">Elektrikli Rota</div>
         </div>
         <div class="box">
           <div class="value" id="sum-diesel-count">0</div>
-          <div class="label">Dizel Rota</div>
+          <div class="label" data-i18n="stat.diesel_routes">Dizel Rota</div>
         </div>
         <div class="box">
           <div class="value" id="sum-moto-count">0</div>
-          <div class="label">Motosiklet Rota</div>
+          <div class="label" data-i18n="stat.motorcycle_routes">Motosiklet Rota</div>
         </div>
       </div>
 
-      <h3 style="font-size: 14px; margin: 16px 0 8px;">Teslimat Kalitesi</h3>
+      <h3 style="font-size: 14px; margin: 16px 0 8px;" data-i18n="stat.delivery_quality">Teslimat Kalitesi</h3>
       <div id="quality-empty-msg" class="msg hidden">Henüz durak verisi yok.</div>
       <div id="quality-content" class="stat">
         <div class="box">
           <div class="value" id="quality-total-stops">0</div>
-          <div class="label">Toplam Durak</div>
+          <div class="label" data-i18n="stat.total_stops">Toplam Durak</div>
         </div>
         <div class="box">
           <div class="value" id="quality-delivered">0</div>
-          <div class="label">Teslim Edilen</div>
+          <div class="label" data-i18n="stat.delivered">Teslim Edilen</div>
         </div>
         <div class="box">
           <div class="value" id="quality-failed">0</div>
-          <div class="label">Başarısız</div>
+          <div class="label" data-i18n="stat.failed">Başarısız</div>
         </div>
         <div class="box">
           <div class="value" id="quality-skipped">0</div>
-          <div class="label">Atlanan</div>
+          <div class="label" data-i18n="stat.skipped">Atlanan</div>
         </div>
         <div class="box">
           <div class="value" id="quality-retry">0</div>
-          <div class="label">Tekrar Denenecek</div>
+          <div class="label" data-i18n="stat.retry_scheduled">Tekrar Denenecek</div>
         </div>
         <div class="box">
           <div class="value" id="quality-pending">0</div>
-          <div class="label">Bekleyen</div>
+          <div class="label" data-i18n="stat.pending">Bekleyen</div>
         </div>
         <div class="box">
           <div class="value" id="quality-success-rate">0</div>
-          <div class="label">Teslimat Başarı Oranı</div>
+          <div class="label" data-i18n="stat.success_rate">Teslimat Başarı Oranı</div>
         </div>
       </div>
     </div>
@@ -900,8 +1053,8 @@
     <div class="page-header">
       <div class="page-header-icon">⚠️</div>
       <div class="page-header-text">
-        <h2>Uyarılar</h2>
-        <p>Risk merkezi — dikkat gerektiren rotalar ve teslimatlar</p>
+        <h2 data-i18n="page.uyarilar.title">Uyarılar</h2>
+        <p data-i18n="page.uyarilar.subtitle">Risk merkezi — dikkat gerektiren rotalar ve teslimatlar</p>
       </div>
     </div>
     <div id="alerts-empty-msg" class="msg hidden">Şu anda aktif uyarı yok.</div>
@@ -912,8 +1065,8 @@
     <div class="page-header">
       <div class="page-header-icon">💡</div>
       <div class="page-header-text">
-        <h2>Öneriler</h2>
-        <p>Aksiyon merkezi — kârlılığı ve sürdürülebilirliği artıracak öneriler</p>
+        <h2 data-i18n="page.oneriler.title">Öneriler</h2>
+        <p data-i18n="page.oneriler.subtitle">Aksiyon merkezi — kârlılığı ve sürdürülebilirliği artıracak öneriler</p>
       </div>
     </div>
     <div id="recommendations-empty-msg" class="msg hidden">Şu anda öneri bulunmuyor.</div>
@@ -924,168 +1077,168 @@
     <div class="page-header">
       <div class="page-header-icon">🌱</div>
       <div class="page-header-text">
-        <h2 id="report-title">Sürdürülebilirlik Raporu</h2>
-        <p>Yönetim raporu — finansal, karbon ve operasyon özetleri</p>
+        <h2 id="report-title" data-i18n="page.rapor.title">Sürdürülebilirlik Raporu</h2>
+        <p data-i18n="page.rapor.subtitle">Yönetim raporu — finansal, karbon ve operasyon özetleri</p>
       </div>
     </div>
     <div id="report-generated-at" style="font-size: 12px; color: var(--muted); margin-bottom: 8px;"></div>
     <div id="report-executive-summary" style="margin-bottom: 12px;"></div>
 
     <div class="info-box" style="margin-bottom: 16px;">
-      <strong>Değerlendirme</strong>
+      <strong data-i18n="report.assessment">Değerlendirme</strong>
       <div id="report-business-comment">—</div>
     </div>
 
-    <h3 style="font-size: 14px; margin-bottom: 8px;">Finansal Özet</h3>
+    <h3 style="font-size: 14px; margin-bottom: 8px;" data-i18n="report.financial_summary">Finansal Özet</h3>
     <div class="stat" style="margin-bottom: 8px;">
       <div class="box">
         <div class="value" id="report-fin-revenue">0</div>
-        <div class="label">Toplam Gelir (TL)</div>
+        <div class="label" data-i18n="stat.total_revenue">Toplam Gelir (TL)</div>
       </div>
       <div class="box">
         <div class="value" id="report-fin-cost">0</div>
-        <div class="label">Toplam Maliyet (TL)</div>
+        <div class="label" data-i18n="stat.total_cost">Toplam Maliyet (TL)</div>
       </div>
       <div class="box">
         <div class="value" id="report-fin-profit">0</div>
-        <div class="label">Toplam Kâr (TL)</div>
+        <div class="label" data-i18n="stat.total_profit">Toplam Kâr (TL)</div>
       </div>
       <div class="box">
         <div class="value" id="report-fin-avg-profit">0</div>
-        <div class="label">Rota Başına Ort. Kâr (TL)</div>
+        <div class="label" data-i18n="stat.avg_profit_per_route">Rota Başına Ort. Kâr (TL)</div>
       </div>
     </div>
     <div class="row" style="margin-bottom: 16px;">
       <div class="info-box">
-        <strong>En Kârlı Rota</strong>
+        <strong data-i18n="stat.best_route">En Kârlı Rota</strong>
         <div id="report-fin-best">—</div>
       </div>
       <div class="info-box">
-        <strong>En Zararlı Rota</strong>
+        <strong data-i18n="stat.worst_route">En Zararlı Rota</strong>
         <div id="report-fin-worst">—</div>
       </div>
     </div>
 
-    <h3 style="font-size: 14px; margin-bottom: 8px;">Karbon Özeti</h3>
+    <h3 style="font-size: 14px; margin-bottom: 8px;" data-i18n="report.carbon_summary">Karbon Özeti</h3>
     <div class="stat" style="margin-bottom: 16px;">
       <div class="box">
         <div class="value" id="report-carbon-total">0</div>
-        <div class="label">Toplam Karbon (kg)</div>
+        <div class="label" data-i18n="stat.total_carbon">Toplam Karbon (kg)</div>
       </div>
       <div class="box">
         <div class="value" id="report-carbon-avg">0</div>
-        <div class="label">Rota Başına Ort. Karbon (kg)</div>
+        <div class="label" data-i18n="stat.avg_carbon_per_route">Rota Başına Ort. Karbon (kg)</div>
       </div>
       <div class="box">
         <div class="value" id="report-carbon-electric">0</div>
-        <div class="label">Elektrikli Rota</div>
+        <div class="label" data-i18n="stat.electric_routes">Elektrikli Rota</div>
       </div>
       <div class="box">
         <div class="value" id="report-carbon-diesel">0</div>
-        <div class="label">Dizel Rota</div>
+        <div class="label" data-i18n="stat.diesel_routes">Dizel Rota</div>
       </div>
       <div class="box">
         <div class="value" id="report-carbon-moto">0</div>
-        <div class="label">Motosiklet Rota</div>
+        <div class="label" data-i18n="stat.motorcycle_routes">Motosiklet Rota</div>
       </div>
     </div>
 
-    <h3 style="font-size: 14px; margin-bottom: 8px;">Risk Özeti</h3>
+    <h3 style="font-size: 14px; margin-bottom: 8px;" data-i18n="report.risk_summary">Risk Özeti</h3>
     <div class="stat" style="margin-bottom: 16px;">
       <div class="box">
         <div class="value" id="report-risk-total">0</div>
-        <div class="label">Toplam Uyarı</div>
+        <div class="label" data-i18n="report.total_alerts">Toplam Uyarı</div>
       </div>
       <div class="box">
         <div class="value" id="report-risk-high">0</div>
-        <div class="label">Yüksek</div>
+        <div class="label" data-i18n="report.high">Yüksek</div>
       </div>
       <div class="box">
         <div class="value" id="report-risk-medium">0</div>
-        <div class="label">Orta</div>
+        <div class="label" data-i18n="report.medium">Orta</div>
       </div>
       <div class="box">
         <div class="value" id="report-risk-low">0</div>
-        <div class="label">Düşük</div>
+        <div class="label" data-i18n="report.low">Düşük</div>
       </div>
     </div>
 
-    <h3 style="font-size: 14px; margin-bottom: 8px;">Öneri Özeti</h3>
+    <h3 style="font-size: 14px; margin-bottom: 8px;" data-i18n="report.recommendation_summary">Öneri Özeti</h3>
     <div class="stat">
       <div class="box">
         <div class="value" id="report-rec-total">0</div>
-        <div class="label">Toplam Öneri</div>
+        <div class="label" data-i18n="report.total_recommendations">Toplam Öneri</div>
       </div>
       <div class="box">
         <div class="value" id="report-rec-high">0</div>
-        <div class="label">Yüksek Öncelik</div>
+        <div class="label" data-i18n="report.high_priority">Yüksek Öncelik</div>
       </div>
       <div class="box">
         <div class="value" id="report-rec-medium">0</div>
-        <div class="label">Orta Öncelik</div>
+        <div class="label" data-i18n="report.medium_priority">Orta Öncelik</div>
       </div>
       <div class="box">
         <div class="value" id="report-rec-low">0</div>
-        <div class="label">Düşük Öncelik</div>
+        <div class="label" data-i18n="report.low_priority">Düşük Öncelik</div>
       </div>
     </div>
 
-    <h3 style="font-size: 14px; margin: 16px 0 8px;">Operasyon Kalitesi</h3>
+    <h3 style="font-size: 14px; margin: 16px 0 8px;" data-i18n="report.operation_quality">Operasyon Kalitesi</h3>
     <div class="stat">
       <div class="box">
         <div class="value" id="report-quality-total">0</div>
-        <div class="label">Toplam Durak</div>
+        <div class="label" data-i18n="stat.total_stops">Toplam Durak</div>
       </div>
       <div class="box">
         <div class="value" id="report-quality-delivered">0</div>
-        <div class="label">Teslim Edilen</div>
+        <div class="label" data-i18n="stat.delivered">Teslim Edilen</div>
       </div>
       <div class="box">
         <div class="value" id="report-quality-failed">0</div>
-        <div class="label">Başarısız</div>
+        <div class="label" data-i18n="stat.failed">Başarısız</div>
       </div>
       <div class="box">
         <div class="value" id="report-quality-skipped">0</div>
-        <div class="label">Atlanan</div>
+        <div class="label" data-i18n="stat.skipped">Atlanan</div>
       </div>
       <div class="box">
         <div class="value" id="report-quality-retry">0</div>
-        <div class="label">Tekrar Denenecek</div>
+        <div class="label" data-i18n="stat.retry_scheduled">Tekrar Denenecek</div>
       </div>
       <div class="box">
         <div class="value" id="report-quality-pending">0</div>
-        <div class="label">Bekleyen</div>
+        <div class="label" data-i18n="stat.pending">Bekleyen</div>
       </div>
       <div class="box">
         <div class="value" id="report-quality-success-rate">0</div>
-        <div class="label">Teslimat Başarı Oranı</div>
+        <div class="label" data-i18n="stat.success_rate">Teslimat Başarı Oranı</div>
       </div>
     </div>
 
-    <button class="secondary" onclick="loadSustainabilityReport()" style="margin-top: 16px;">Yenile</button>
-    <button onclick="downloadSustainabilityReportPdf()" style="margin-top: 16px;">PDF İndir</button>
+    <button class="secondary" onclick="loadSustainabilityReport()" style="margin-top: 16px;" data-i18n="button.refresh">Yenile</button>
+    <button onclick="downloadSustainabilityReportPdf()" style="margin-top: 16px;" data-i18n="button.download_pdf">PDF İndir</button>
   </div>
 
   <div class="card hidden" id="stats-card" data-page="rotalar">
     <div class="page-header">
       <div class="page-header-icon">🛣️</div>
       <div class="page-header-text">
-        <h2 id="routes-page-title">Rotalar</h2>
-        <p id="routes-page-subtitle">Operasyon tablosu — tüm rotalarınızı filtreleyin, arayın ve yönetin</p>
+        <h2 id="routes-page-title" data-i18n="page.rotalar-admin.title">Rotalar</h2>
+        <p id="routes-page-subtitle" data-i18n="page.rotalar-admin.subtitle">Operasyon tablosu — tüm rotalarınızı filtreleyin, arayın ve yönetin</p>
       </div>
     </div>
     <div class="stat">
       <div class="box">
         <div class="value" id="stat-route-count">0</div>
-        <div class="label">Toplam Rota</div>
+        <div class="label" data-i18n="stat.total_routes">Toplam Rota</div>
       </div>
       <div class="box">
         <div class="value" id="stat-total-km">0</div>
-        <div class="label">Toplam Mesafe (km)</div>
+        <div class="label" data-i18n="stat.total_distance">Toplam Mesafe (km)</div>
       </div>
       <div class="box">
         <div class="value" id="stat-total-carbon">0</div>
-        <div class="label">Toplam Tahmini Karbon (kg)</div>
+        <div class="label" data-i18n="stat.total_est_carbon">Toplam Tahmini Karbon (kg)</div>
       </div>
     </div>
   </div>
@@ -1094,33 +1247,33 @@
     <div class="page-header">
       <div class="page-header-icon">🧭</div>
       <div class="page-header-text">
-        <h2>Akıllı Araç Önerisi</h2>
-        <p>Karar destek ekranı — rota için en uygun aracı bulun</p>
+        <h2 data-i18n="page.arac-onerisi.title">Akıllı Araç Önerisi</h2>
+        <p data-i18n="page.arac-onerisi.subtitle">Karar destek ekranı — rota için en uygun aracı bulun</p>
       </div>
     </div>
     <div class="row">
       <div>
-        <label>Mesafe (km)</label>
+        <label data-i18n="label.distance_km">Mesafe (km)</label>
         <input type="number" id="reco-distance" placeholder="42">
       </div>
       <div>
-        <label>Beklenen Gelir (TL)</label>
+        <label data-i18n="label.expected_revenue">Beklenen Gelir (TL)</label>
         <input type="number" id="reco-revenue" placeholder="1500">
       </div>
       <div>
-        <label>Paket Ağırlığı (kg)</label>
+        <label data-i18n="label.package_weight">Paket Ağırlığı (kg)</label>
         <input type="number" id="reco-weight" placeholder="120">
       </div>
     </div>
-    <button onclick="recommendBestVehicle()">En Uygun Aracı Öner</button>
+    <button onclick="recommendBestVehicle()" data-i18n="button.suggest_vehicle">En Uygun Aracı Öner</button>
     <div id="reco-msg" class="msg"></div>
 
     <div id="reco-result" class="hidden" style="margin-top: 16px;">
       <div class="info-box" style="margin-bottom: 12px;">
-        <strong>Önerilen Araç</strong>
+        <strong data-i18n="reco.recommended_vehicle">Önerilen Araç</strong>
         <div id="reco-best-content"></div>
       </div>
-      <strong style="font-size: 13px; color: var(--muted);">Alternatifler</strong>
+      <strong style="font-size: 13px; color: var(--muted);" data-i18n="reco.alternatives">Alternatifler</strong>
       <div id="reco-alternatives" style="margin-top: 8px;"></div>
     </div>
   </div>
@@ -1129,42 +1282,42 @@
     <div class="page-header">
       <div class="page-header-icon">➕</div>
       <div class="page-header-text">
-        <h2>Yeni Rota Oluştur</h2>
-        <p>Güzergah, araç ve durak bilgilerini girin — kâr/karbon otomatik hesaplanır</p>
+        <h2 data-i18n="page.yeni-rota.title">Yeni Rota Oluştur</h2>
+        <p data-i18n="page.yeni-rota.subtitle">Güzergah, araç ve durak bilgilerini girin — kâr/karbon otomatik hesaplanır</p>
       </div>
     </div>
     <div id="no-vehicles-msg" class="msg error hidden">Önce bir araç oluşturmalısınız.</div>
     <div id="route-form-fields">
       <div class="row">
         <div>
-          <label>Nereden</label>
+          <label data-i18n="label.origin">Nereden</label>
           <input type="text" id="route-origin" placeholder="Istanbul">
         </div>
         <div>
-          <label>Nereye</label>
+          <label data-i18n="label.destination">Nereye</label>
           <input type="text" id="route-destination" placeholder="Ankara">
         </div>
       </div>
       <div class="row">
         <div>
-          <label>Mesafe (km)</label>
+          <label data-i18n="label.distance_km">Mesafe (km)</label>
           <input type="number" id="route-distance" placeholder="100">
         </div>
         <div>
-          <label>Beklenen Gelir (TL)</label>
+          <label data-i18n="label.expected_revenue">Beklenen Gelir (TL)</label>
           <input type="number" id="route-revenue" placeholder="500">
         </div>
       </div>
-      <label>Araç</label>
+      <label data-i18n="label.vehicle">Araç</label>
       <select id="route-vehicle-id"></select>
-      <label>Atanan Sürücü ID (opsiyonel)</label>
+      <label data-i18n="label.assigned_driver_id">Atanan Sürücü ID (opsiyonel)</label>
       <input type="text" id="route-driver-id" placeholder="Sürücünün kullanıcı ID'si">
 
-      <label style="margin-top: 16px;">Duraklar (opsiyonel)</label>
+      <label style="margin-top: 16px;" data-i18n="label.stops_optional">Duraklar (opsiyonel)</label>
       <div id="stops-container"></div>
-      <button type="button" class="secondary" onclick="addStopRow()">+ Durak Ekle</button>
+      <button type="button" class="secondary" onclick="addStopRow()" data-i18n="button.add_stop">+ Durak Ekle</button>
 
-      <button onclick="createRoute()">Rota Oluştur</button>
+      <button onclick="createRoute()" data-i18n="button.create_route">Rota Oluştur</button>
     </div>
     <div id="route-msg" class="msg"></div>
   </div>
@@ -1173,47 +1326,47 @@
     <div class="page-header">
       <div class="page-header-icon">📥</div>
       <div class="page-header-text">
-        <h2>CSV ile Rota İçe Aktar</h2>
-        <p>Veri içe aktarma aracı — toplu durak listesini tek seferde yükleyin</p>
+        <h2 data-i18n="page.csv-ice-aktar.title">CSV ile Rota İçe Aktar</h2>
+        <p data-i18n="page.csv-ice-aktar.subtitle">Veri içe aktarma aracı — toplu durak listesini tek seferde yükleyin</p>
       </div>
     </div>
     <div class="row">
       <div>
-        <label>Rota Adı</label>
+        <label data-i18n="label.route_name">Rota Adı</label>
         <input type="text" id="import-route-name" placeholder="Antalya Teslimat Turu">
       </div>
       <div>
-        <label>Araç</label>
+        <label data-i18n="label.vehicle">Araç</label>
         <select id="import-vehicle-id"></select>
       </div>
     </div>
     <div class="row">
       <div>
-        <label>Mesafe (km)</label>
+        <label data-i18n="label.distance_km">Mesafe (km)</label>
         <input type="number" id="import-distance" placeholder="25">
       </div>
       <div>
-        <label>Beklenen Gelir (TL)</label>
+        <label data-i18n="label.expected_revenue">Beklenen Gelir (TL)</label>
         <input type="number" id="import-revenue" placeholder="500">
       </div>
       <div>
-        <label>Sürücü Ata (opsiyonel)</label>
+        <label data-i18n="label.assign_driver_optional">Sürücü Ata (opsiyonel)</label>
         <select id="import-driver-id">
-          <option value="">Atama yok</option>
+          <option value="" data-i18n="select.no_assignment">Atama yok</option>
         </select>
       </div>
     </div>
-    <label>CSV Dosyası</label>
+    <label data-i18n="label.csv_file">CSV Dosyası</label>
     <input type="file" id="import-file" accept=".csv">
-    <button onclick="importRoutesCsv()">CSV Yükle ve Rota Oluştur</button>
+    <button onclick="importRoutesCsv()" data-i18n="button.upload_csv">CSV Yükle ve Rota Oluştur</button>
     <div id="import-msg" class="msg"></div>
     <div id="import-errors" class="hidden" style="margin-top: 10px;">
       <table>
         <thead>
           <tr>
-            <th>Satır</th>
-            <th>Alan</th>
-            <th>Hata</th>
+            <th data-i18n="label.csv_row">Satır</th>
+            <th data-i18n="label.csv_field">Alan</th>
+            <th data-i18n="label.csv_error">Hata</th>
           </tr>
         </thead>
         <tbody id="import-errors-tbody"></tbody>
@@ -1221,7 +1374,7 @@
     </div>
 
     <div class="info-box" style="margin-top: 16px;">
-      <strong>Örnek CSV Formatı</strong>
+      <strong data-i18n="label.csv_sample_format">Örnek CSV Formatı</strong>
       <pre style="white-space: pre-wrap; font-size: 12px; margin: 6px 0 0;">sequence_number,customer_name,customer_phone,address,latitude,longitude,package_weight_kg,delivery_note
 1,Ayşe Yılmaz,05550000001,Konyaaltı Antalya,36.8841,30.7056,12.5,Apartman girişine bırakılmasın
 2,Mehmet Demir,05550000002,Muratpaşa Antalya,36.8870,30.7075,8.0,Telefonla aransın</pre>
@@ -1229,74 +1382,74 @@
   </div>
 
   <div class="card hidden" id="routes-card" data-page="rotalar">
-    <h3 style="font-size: 14px; margin: 0 0 4px;">Rota Listesi ve Filtreler</h3>
+    <h3 style="font-size: 14px; margin: 0 0 4px;" data-i18n="page.routes_list.title">Rota Listesi ve Filtreler</h3>
 
     <div class="row">
       <div>
-        <label>Ara</label>
+        <label data-i18n="label.search">Ara</label>
         <input type="text" id="filter-search" placeholder="Şehir, plaka, müşteri...">
       </div>
       <div>
-        <label>Durum</label>
+        <label data-i18n="label.status">Durum</label>
         <select id="filter-status">
-          <option value="">Tümü</option>
-          <option value="pending">Bekliyor</option>
-          <option value="assigned">Atandı</option>
-          <option value="in_progress">Yolda</option>
-          <option value="delivered">Teslim Edildi</option>
-          <option value="cancelled">İptal Edildi</option>
+          <option value="" data-i18n="select.all">Tümü</option>
+          <option value="pending" data-i18n="select.status_pending">Bekliyor</option>
+          <option value="assigned" data-i18n="select.status_assigned">Atandı</option>
+          <option value="in_progress" data-i18n="select.status_in_progress">Yolda</option>
+          <option value="delivered" data-i18n="select.status_delivered">Teslim Edildi</option>
+          <option value="cancelled" data-i18n="select.status_cancelled">İptal Edildi</option>
         </select>
       </div>
       <div>
-        <label>Araç Tipi</label>
+        <label data-i18n="label.vehicle_type">Araç Tipi</label>
         <select id="filter-vehicle-type">
-          <option value="">Tümü</option>
-          <option value="electric_van">Elektrikli Van</option>
-          <option value="diesel_van">Dizel Van</option>
-          <option value="motorcycle">Motosiklet</option>
+          <option value="" data-i18n="select.all">Tümü</option>
+          <option value="electric_van" data-i18n="select.vehicle_electric_van">Elektrikli Van</option>
+          <option value="diesel_van" data-i18n="select.vehicle_diesel_van">Dizel Van</option>
+          <option value="motorcycle" data-i18n="select.vehicle_motorcycle">Motosiklet</option>
         </select>
       </div>
     </div>
     <div class="row">
       <div>
-        <label>Sırala</label>
+        <label data-i18n="label.sort_by">Sırala</label>
         <select id="filter-sort-by">
-          <option value="created_at">Oluşturulma Tarihi</option>
-          <option value="distance_km">Mesafe</option>
-          <option value="estimated_profit">Kâr</option>
-          <option value="estimated_carbon_kg">Karbon</option>
-          <option value="status">Durum</option>
+          <option value="created_at" data-i18n="select.sort_created_at">Oluşturulma Tarihi</option>
+          <option value="distance_km" data-i18n="select.sort_distance">Mesafe</option>
+          <option value="estimated_profit" data-i18n="select.sort_profit">Kâr</option>
+          <option value="estimated_carbon_kg" data-i18n="select.sort_carbon">Karbon</option>
+          <option value="status" data-i18n="select.sort_status">Durum</option>
         </select>
       </div>
       <div>
-        <label>Yön</label>
+        <label data-i18n="label.direction">Yön</label>
         <select id="filter-sort-order">
-          <option value="desc">Azalan</option>
-          <option value="asc">Artan</option>
+          <option value="desc" data-i18n="select.direction_desc">Azalan</option>
+          <option value="asc" data-i18n="select.direction_asc">Artan</option>
         </select>
       </div>
       <div>
-        <label>Min. Kâr (TL)</label>
+        <label data-i18n="label.min_profit">Min. Kâr (TL)</label>
         <input type="number" id="filter-min-profit" placeholder="0">
       </div>
       <div>
-        <label>Maks. Kâr (TL)</label>
+        <label data-i18n="label.max_profit">Maks. Kâr (TL)</label>
         <input type="number" id="filter-max-profit" placeholder="1000">
       </div>
     </div>
     <div class="row" id="filter-carbon-fields">
       <div>
-        <label>Min. Karbon (kg)</label>
+        <label data-i18n="label.min_carbon">Min. Karbon (kg)</label>
         <input type="number" id="filter-min-carbon" placeholder="0">
       </div>
       <div>
-        <label>Maks. Karbon (kg)</label>
+        <label data-i18n="label.max_carbon">Maks. Karbon (kg)</label>
         <input type="number" id="filter-max-carbon" placeholder="50">
       </div>
     </div>
-    <button onclick="applyRouteFilters()">Filtrele</button>
-    <button class="secondary" onclick="clearRouteFilters()">Filtreleri Temizle</button>
-    <button class="secondary" onclick="loadRoutes()">Yenile</button>
+    <button onclick="applyRouteFilters()" data-i18n="button.filter">Filtrele</button>
+    <button class="secondary" onclick="clearRouteFilters()" data-i18n="button.clear_filters">Filtreleri Temizle</button>
+    <button class="secondary" onclick="loadRoutes()" data-i18n="button.refresh">Yenile</button>
 
     <div id="routes-action-msg" class="msg"></div>
     <div id="routes-empty-msg" class="msg hidden"></div>
@@ -1304,14 +1457,14 @@
     <table>
       <thead>
         <tr>
-          <th>Güzergah</th>
-          <th>Mesafe</th>
-          <th>Araç Tipi</th>
-          <th>Durum</th>
-          <th>Tahmini Karbon</th>
-          <th>Atanan Sürücü</th>
-          <th>Duraklar</th>
-          <th>İşlem</th>
+          <th data-i18n="table.route">Güzergah</th>
+          <th data-i18n="table.distance">Mesafe</th>
+          <th data-i18n="table.vehicle_type">Araç Tipi</th>
+          <th data-i18n="table.status">Durum</th>
+          <th data-i18n="table.est_carbon">Tahmini Karbon</th>
+          <th data-i18n="table.assigned_driver">Atanan Sürücü</th>
+          <th data-i18n="table.stops">Duraklar</th>
+          <th data-i18n="table.action">İşlem</th>
         </tr>
       </thead>
       <tbody id="routes-tbody"></tbody>
@@ -1320,8 +1473,8 @@
     <div class="userbar" style="margin-top: 12px;">
       <span id="routes-total-label"></span>
       <div>
-        <button class="secondary" id="routes-prev-btn" onclick="prevRoutesPage()">Önceki Sayfa</button>
-        <button class="secondary" id="routes-next-btn" onclick="nextRoutesPage()">Sonraki Sayfa</button>
+        <button class="secondary" id="routes-prev-btn" onclick="prevRoutesPage()" data-i18n="button.prev_page">Önceki Sayfa</button>
+        <button class="secondary" id="routes-next-btn" onclick="nextRoutesPage()" data-i18n="button.next_page">Sonraki Sayfa</button>
       </div>
     </div>
   </div>
@@ -1330,58 +1483,58 @@
     <div class="page-header">
       <div class="page-header-icon">🚚</div>
       <div class="page-header-text">
-        <h2>Araçlar</h2>
-        <p>Filo yönetimi — araçları görüntüleyin ve yeni araç ekleyin</p>
+        <h2 data-i18n="page.araclar.title">Araçlar</h2>
+        <p data-i18n="page.araclar.subtitle">Filo yönetimi — araçları görüntüleyin ve yeni araç ekleyin</p>
       </div>
     </div>
-    <button class="secondary" onclick="loadVehiclesList()">Yenile</button>
+    <button class="secondary" onclick="loadVehiclesList()" data-i18n="button.refresh">Yenile</button>
     <table>
       <thead>
         <tr>
-          <th>Plaka</th>
-          <th>Tip</th>
-          <th>Kapasite (kg)</th>
-          <th>Maliyet/km (TL)</th>
-          <th>Karbon/km (kg)</th>
-          <th>Aktif</th>
+          <th data-i18n="table.plate">Plaka</th>
+          <th data-i18n="table.type">Tip</th>
+          <th data-i18n="table.capacity">Kapasite (kg)</th>
+          <th data-i18n="table.cost_per_km">Maliyet/km (TL)</th>
+          <th data-i18n="table.carbon_per_km">Karbon/km (kg)</th>
+          <th data-i18n="table.active">Aktif</th>
         </tr>
       </thead>
       <tbody id="vehicles-tbody"></tbody>
     </table>
 
-    <h3 style="font-size: 14px; margin: 20px 0 8px;">Yeni Araç Ekle</h3>
+    <h3 style="font-size: 14px; margin: 20px 0 8px;" data-i18n="vehicles.add_new">Yeni Araç Ekle</h3>
     <div class="row">
       <div>
-        <label>Plaka</label>
+        <label data-i18n="label.plate">Plaka</label>
         <input type="text" id="new-vehicle-plate" placeholder="34 ABC 123">
       </div>
       <div>
-        <label>Araç Tipi</label>
+        <label data-i18n="label.vehicle_type">Araç Tipi</label>
         <select id="new-vehicle-type">
-          <option value="electric_van">Elektrikli Van</option>
-          <option value="diesel_van">Dizel Van</option>
-          <option value="motorcycle">Motosiklet</option>
+          <option value="electric_van" data-i18n="select.vehicle_electric_van">Elektrikli Van</option>
+          <option value="diesel_van" data-i18n="select.vehicle_diesel_van">Dizel Van</option>
+          <option value="motorcycle" data-i18n="select.vehicle_motorcycle">Motosiklet</option>
         </select>
       </div>
     </div>
     <div class="row">
       <div>
-        <label>Kapasite (kg)</label>
+        <label data-i18n="label.capacity_kg">Kapasite (kg)</label>
         <input type="number" id="new-vehicle-capacity" placeholder="800">
       </div>
       <div>
-        <label>Maliyet (TL/km)</label>
+        <label data-i18n="label.cost_per_km">Maliyet (TL/km)</label>
         <input type="number" step="any" id="new-vehicle-cost" placeholder="2.5">
       </div>
       <div>
-        <label>Karbon (kg/km)</label>
+        <label data-i18n="label.carbon_per_km">Karbon (kg/km)</label>
         <input type="number" step="any" id="new-vehicle-carbon" placeholder="0.05">
       </div>
     </div>
     <label style="display: flex; align-items: center; gap: 6px; margin-top: 10px;">
-      <input type="checkbox" id="new-vehicle-active" checked style="width: auto;"> Aktif
+      <input type="checkbox" id="new-vehicle-active" checked style="width: auto;"> <span data-i18n="label.active">Aktif</span>
     </label>
-    <button onclick="createVehicle()">Araç Ekle</button>
+    <button onclick="createVehicle()" data-i18n="button.add_vehicle">Araç Ekle</button>
     <div id="vehicle-create-msg" class="msg"></div>
   </div>
 
@@ -1389,14 +1542,14 @@
     <div class="page-header">
       <div class="page-header-icon">🕒</div>
       <div class="page-header-text">
-        <h2>İşlem Geçmişi</h2>
-        <p>Audit log — kim, ne zaman, ne yaptı</p>
+        <h2 data-i18n="page.islem-gecmisi.title">İşlem Geçmişi</h2>
+        <p data-i18n="page.islem-gecmisi.subtitle">Audit log — kim, ne zaman, ne yaptı</p>
       </div>
     </div>
 
     <div class="row">
       <div>
-        <label>İşlem</label>
+        <label data-i18n="label.action_filter">İşlem</label>
         <select id="audit-filter-action">
           <option value="">Tümü</option>
           <option value="user_registered">Kullanıcı Kaydoldu</option>
@@ -1417,31 +1570,31 @@
         </select>
       </div>
       <div>
-        <label>Rol</label>
+        <label data-i18n="label.role_filter">Rol</label>
         <select id="audit-filter-role">
-          <option value="">Tümü</option>
-          <option value="admin">Yönetici</option>
-          <option value="driver">Sürücü</option>
+          <option value="" data-i18n="select.all">Tümü</option>
+          <option value="admin" data-i18n="select.role_admin">Yönetici</option>
+          <option value="driver" data-i18n="select.role_driver">Sürücü</option>
         </select>
       </div>
       <div>
-        <label>Varlık Tipi</label>
+        <label data-i18n="label.entity_type_filter">Varlık Tipi</label>
         <input type="text" id="audit-filter-entity-type" placeholder="route, stop, vehicle...">
       </div>
     </div>
-    <button onclick="applyAuditLogFilters()">Filtrele</button>
-    <button class="secondary" onclick="clearAuditLogFilters()">Filtreleri Temizle</button>
-    <button class="secondary" onclick="loadAuditLogs()">Yenile</button>
+    <button onclick="applyAuditLogFilters()" data-i18n="button.filter">Filtrele</button>
+    <button class="secondary" onclick="clearAuditLogFilters()" data-i18n="button.clear_filters">Filtreleri Temizle</button>
+    <button class="secondary" onclick="loadAuditLogs()" data-i18n="button.refresh">Yenile</button>
 
     <table>
       <thead>
         <tr>
-          <th>Tarih</th>
-          <th>Kullanıcı</th>
-          <th>Rol</th>
-          <th>İşlem</th>
-          <th>Açıklama</th>
-          <th>Varlık Tipi</th>
+          <th data-i18n="table.date">Tarih</th>
+          <th data-i18n="table.user">Kullanıcı</th>
+          <th data-i18n="table.role">Rol</th>
+          <th data-i18n="table.operation">İşlem</th>
+          <th data-i18n="table.description">Açıklama</th>
+          <th data-i18n="table.entity_type">Varlık Tipi</th>
         </tr>
       </thead>
       <tbody id="audit-logs-tbody"></tbody>
@@ -1450,8 +1603,8 @@
     <div class="userbar" style="margin-top: 12px;">
       <span id="audit-logs-total-label"></span>
       <div>
-        <button class="secondary" id="audit-logs-prev-btn" onclick="prevAuditLogsPage()">Önceki Sayfa</button>
-        <button class="secondary" id="audit-logs-next-btn" onclick="nextAuditLogsPage()">Sonraki Sayfa</button>
+        <button class="secondary" id="audit-logs-prev-btn" onclick="prevAuditLogsPage()" data-i18n="button.prev_page">Önceki Sayfa</button>
+        <button class="secondary" id="audit-logs-next-btn" onclick="nextAuditLogsPage()" data-i18n="button.next_page">Sonraki Sayfa</button>
       </div>
     </div>
   </div>
@@ -1460,8 +1613,8 @@
     <div class="page-header">
       <div class="ai-title-icon">✦</div>
       <div class="page-header-text">
-        <h2>AI Danışman</h2>
-        <p>Gemini destekli sohbet — verilerinize dayalı anında analiz ve öneri</p>
+        <h2 data-i18n="page.ai-danisman.title">AI Danışman</h2>
+        <p data-i18n="page.ai-danisman.subtitle">Gemini destekli sohbet — verilerinize dayalı anında analiz ve öneri</p>
       </div>
     </div>
 
@@ -1485,6 +1638,79 @@
     </div>
   </div>
 
+  <div class="card hidden" id="settings-card" data-page="ayarlar">
+    <div class="page-header">
+      <div class="page-header-icon">⚙️</div>
+      <div class="page-header-text">
+        <h2 data-i18n="page.ayarlar.title">Ayarlar</h2>
+        <p data-i18n="page.ayarlar.subtitle">Hesap, görünüm ve tercihlerinizi yönetin</p>
+      </div>
+    </div>
+
+    <div class="settings-grid">
+      <div class="settings-section">
+        <h3 data-i18n="settings.profile_heading">Profil Bilgileri</h3>
+        <label data-i18n="settings.profile_fullname">Ad Soyad</label>
+        <input type="text" id="settings-fullname">
+        <label data-i18n="settings.profile_email">E-posta</label>
+        <input type="email" id="settings-email" disabled>
+        <label data-i18n="settings.profile_role">Rol</label>
+        <input type="text" id="settings-role" disabled>
+        <button id="settings-profile-save-btn" onclick="saveProfileSettings()" data-i18n="settings.profile_save">Kaydet</button>
+        <div id="settings-profile-msg" class="msg"></div>
+      </div>
+
+      <div class="settings-section">
+        <h3 data-i18n="settings.appearance_heading">Görünüm</h3>
+        <label data-i18n="settings.theme_label">Tema</label>
+        <div class="theme-toggle settings-theme-toggle" role="group" aria-label="Tema">
+          <button type="button" class="theme-btn" data-theme-option="light" onclick="setTheme('light')" data-i18n="settings.theme_light">Açık</button>
+          <button type="button" class="theme-btn" data-theme-option="dark" onclick="setTheme('dark')" data-i18n="settings.theme_dark">Koyu</button>
+          <button type="button" class="theme-btn" data-theme-option="system" onclick="setTheme('system')" data-i18n="settings.theme_system">Sistem</button>
+        </div>
+        <label style="margin-top: 12px;" data-i18n="settings.language_label">Dil</label>
+        <div class="lang-toggle settings-lang-toggle" role="group" aria-label="TR / EN">
+          <button type="button" class="lang-btn" data-lang-option="tr" onclick="setLang('tr')">TR</button>
+          <button type="button" class="lang-btn" data-lang-option="en" onclick="setLang('en')">EN</button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3 data-i18n="settings.security_heading">Hesap Güvenliği</h3>
+        <label data-i18n="settings.password_label">Şifre Değiştir</label>
+        <input type="password" placeholder="••••••••" disabled>
+        <input type="password" placeholder="••••••••" disabled style="margin-top: 8px;">
+        <button disabled style="margin-top: 10px; opacity: 0.6; cursor: not-allowed;">
+          <span data-i18n="settings.password_label">Şifre Değiştir</span> — <span data-i18n="settings.coming_soon">Yakında</span>
+        </button>
+        <div class="msg" style="color: var(--muted);" data-i18n="settings.security_note">Şifre değiştirme özelliği yakında aktif olacak.</div>
+      </div>
+
+      <div class="settings-section">
+        <h3 data-i18n="settings.notifications_heading">Bildirim Tercihleri</h3>
+        <label style="display: flex; align-items: center; gap: 8px; font-weight: 400;">
+          <input type="checkbox" id="notif-critical" style="width: auto;" onchange="saveNotificationPrefs()">
+          <span data-i18n="settings.notif_critical">Kritik uyarılar</span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 8px; font-weight: 400; margin-top: 8px;">
+          <input type="checkbox" id="notif-routes" style="width: auto;" onchange="saveNotificationPrefs()">
+          <span data-i18n="settings.notif_routes">Rota atamaları</span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 8px; font-weight: 400; margin-top: 8px;">
+          <input type="checkbox" id="notif-recommendations" style="width: auto;" onchange="saveNotificationPrefs()">
+          <span data-i18n="settings.notif_recommendations">Karbon / kârlılık önerileri</span>
+        </label>
+      </div>
+
+      <div class="settings-section">
+        <h3 data-i18n="settings.system_heading">Sistem Bilgisi</h3>
+        <div class="settings-info-row"><span data-i18n="settings.system_app_name">Uygulama</span><strong>LogiPulse</strong></div>
+        <div class="settings-info-row"><span data-i18n="settings.system_environment">Ortam</span><strong id="settings-env">—</strong></div>
+        <div class="settings-info-row"><span data-i18n="settings.system_mode">Mod</span><strong data-i18n="settings.system_mode_demo">Demo</strong></div>
+      </div>
+    </div>
+  </div>
+
     </main>
   </div>
 </div>
@@ -1495,6 +1721,606 @@
   let currentUser = null;
   let routesOffset = 0;
   const ROUTES_LIMIT = 20;
+
+  // ==================================================================
+  // --- Tema (Light / Dark / System) ---
+  // Tercih localStorage'da tutulur. "system" seçiliyken data-theme
+  // özniteliği hiç yazılmaz; bu durumda CSS'teki @media (prefers-color-scheme)
+  // kuralı devreye girer ve işletim sistemi tercihini takip eder.
+  // ==================================================================
+  const THEME_KEY = 'logipulse_theme';
+
+  function getThemePref() {
+    try {
+      return localStorage.getItem(THEME_KEY) || 'system';
+    } catch (e) {
+      return 'system';
+    }
+  }
+
+  function applyTheme(pref) {
+    if (pref === 'dark' || pref === 'light') {
+      document.documentElement.setAttribute('data-theme', pref);
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+  }
+
+  function updateThemeUI(pref) {
+    document.querySelectorAll('[data-theme-option]').forEach((btn) => {
+      btn.classList.toggle('active', btn.getAttribute('data-theme-option') === pref);
+    });
+  }
+
+  function setTheme(pref) {
+    try {
+      localStorage.setItem(THEME_KEY, pref);
+    } catch (e) {}
+    applyTheme(pref);
+    updateThemeUI(pref);
+  }
+
+  function initTheme() {
+    const pref = getThemePref();
+    applyTheme(pref);
+    updateThemeUI(pref);
+  }
+
+  // ==================================================================
+  // --- Dil (i18n): Türkçe / İngilizce ---
+  // Google Translate gibi otomatik çeviri kullanılmaz; tüm metinler
+  // burada elle tanımlanan bir sözlükten (TRANSLATIONS) gelir.
+  // Kullanım: HTML'de <span data-i18n="anahtar">Varsayılan Metin</span>,
+  // JS'de t('anahtar') olarak çağrılır. Tercih localStorage'da saklanır.
+  // ==================================================================
+  const LANG_KEY = 'logipulse_lang';
+
+  const TRANSLATIONS = {
+    tr: {
+      sidebar: { role_admin: 'Yönetici Paneli', role_driver: 'Kurye Paneli' },
+      menu: {
+        'yonetici-ozeti': 'Yönetici Özeti',
+        'arac-onerisi': 'Akıllı Araç Önerisi',
+        'rotalar-admin': 'Rotalar',
+        'rotalar-driver': 'Rotalarım',
+        'yeni-rota': 'Yeni Rota Oluştur',
+        'csv-ice-aktar': 'CSV İçe Aktar',
+        araclar: 'Araçlar',
+        'kurye-haritasi': 'Kurye Haritası',
+        uyarilar: 'Uyarılar',
+        oneriler: 'Öneriler',
+        rapor: 'Sürdürülebilirlik Raporu',
+        'islem-gecmisi': 'İşlem Geçmişi',
+        'ai-danisman': 'AI Danışman',
+        'teslimat-haritasi': 'Teslimat Haritası',
+        'konum-guncelle': 'Konumumu Güncelle',
+        ayarlar: 'Ayarlar',
+      },
+      topbar: { logout: 'Çıkış Yap', menu_aria: 'Menü' },
+      banner: { role_mismatch: 'Bu hesap seçilen rol ile eşleşmiyor.', close_aria: 'Kapat' },
+      auth: {
+        eyebrow: 'Operasyon Platformu',
+        tagline: 'Rota, araç, kurye ve teslimat verilerinizi tek panelde toplayın; kârlılığı ve karbon etkisini birlikte yönetin.',
+        feature1_text: 'Rota, araç ve teslimat takibi tek panelde',
+        feature2_text: 'Kâr ve karbon etkisini birlikte optimize edin',
+        feature3_text: 'Gemini destekli AI Danışman ile anında analiz',
+        welcome: 'Hoş geldiniz',
+        welcome_sub: 'Devam etmek için giriş yapın veya yeni hesap oluşturun.',
+        tab_login: 'Giriş Yap',
+        tab_register: 'Kayıt Ol',
+        login_role_label: 'Giriş Türü',
+        role_admin: '🧭 Yönetici Girişi',
+        role_driver: '🚴 Kurye Girişi',
+        email_label: 'E-posta',
+        email_placeholder: 'ornek@sirket.com',
+        password_label: 'Şifre',
+        password_placeholder: '••••••••',
+        login_submit: 'Giriş Yap',
+        fullname_label: 'Ad Soyad / Şirket Yetkilisi',
+        fullname_placeholder: 'Örn: Merve Sena Doğan',
+        role_label: 'Rol',
+        role_admin_register: '🧭 Yönetici',
+        role_driver_register: '🚴 Kurye',
+        register_password_placeholder: 'En az 6 karakter',
+        register_submit: 'Kayıt Ol',
+      },
+      page: {
+        'kurye-haritasi': { title: 'Canlı Kurye Haritası', subtitle: 'Operasyon takip ekranı — sürücülerin anlık konumu ve aktif rotaları' },
+        'teslimat-haritasi': { title: 'Teslimat Haritası', subtitle: 'Kendi konumunuz ve teslimat yapacağınız duraklar' },
+        'konum-guncelle': { title: 'Konumumu Güncelle', subtitle: 'Anlık konumunuzu paylaşın, yöneticiler haritada görsün' },
+        'yonetici-ozeti': { title: 'Yönetici Özeti', subtitle: 'Filo genelinde kâr, karbon ve teslimat performansı' },
+        uyarilar: { title: 'Uyarılar', subtitle: 'Risk merkezi — dikkat gerektiren rotalar ve teslimatlar' },
+        oneriler: { title: 'Öneriler', subtitle: 'Aksiyon merkezi — kârlılığı ve sürdürülebilirliği artıracak öneriler' },
+        rapor: { title: 'Sürdürülebilirlik Raporu', subtitle: 'Yönetim raporu — finansal, karbon ve operasyon özetleri' },
+        'rotalar-admin': { title: 'Rotalar', subtitle: 'Operasyon tablosu — tüm rotalarınızı filtreleyin, arayın ve yönetin' },
+        'rotalar-driver': { title: 'Rotalarım', subtitle: 'Size atanan rotalar, duraklar ve teslimat aksiyonları' },
+        'arac-onerisi': { title: 'Akıllı Araç Önerisi', subtitle: 'Karar destek ekranı — rota için en uygun aracı bulun' },
+        'yeni-rota': { title: 'Yeni Rota Oluştur', subtitle: 'Güzergah, araç ve durak bilgilerini girin — kâr/karbon otomatik hesaplanır' },
+        'csv-ice-aktar': { title: 'CSV ile Rota İçe Aktar', subtitle: 'Veri içe aktarma aracı — toplu durak listesini tek seferde yükleyin' },
+        routes_list: { title: 'Rota Listesi ve Filtreler' },
+        araclar: { title: 'Araçlar', subtitle: 'Filo yönetimi — araçları görüntüleyin ve yeni araç ekleyin' },
+        'islem-gecmisi': { title: 'İşlem Geçmişi', subtitle: 'Audit log — kim, ne zaman, ne yaptı' },
+        'ai-danisman': { title: 'AI Danışman', subtitle: 'Gemini destekli sohbet — verilerinize dayalı anında analiz ve öneri' },
+        ayarlar: { title: 'Ayarlar', subtitle: 'Hesap, görünüm ve tercihlerinizi yönetin' },
+      },
+      stat: {
+        total_routes: 'Toplam Rota',
+        total_distance: 'Toplam Mesafe (km)',
+        total_revenue: 'Toplam Gelir (TL)',
+        total_cost: 'Toplam Maliyet (TL)',
+        total_profit: 'Toplam Kâr (TL)',
+        total_carbon: 'Toplam Karbon (kg)',
+        avg_profit_per_route: 'Rota Başına Ortalama Kâr (TL)',
+        avg_carbon_per_route: 'Rota Başına Ortalama Karbon (kg)',
+        best_route: 'En Kârlı Rota',
+        worst_route: 'En Zararlı Rota',
+        electric_routes: 'Elektrikli Rota',
+        diesel_routes: 'Dizel Rota',
+        motorcycle_routes: 'Motosiklet Rota',
+        delivery_quality: 'Teslimat Kalitesi',
+        total_stops: 'Toplam Durak',
+        delivered: 'Teslim Edilen',
+        failed: 'Başarısız',
+        skipped: 'Atlanan',
+        retry_scheduled: 'Tekrar Denenecek',
+        pending: 'Bekleyen',
+        success_rate: 'Teslimat Başarı Oranı',
+        total_est_carbon: 'Toplam Tahmini Karbon (kg)',
+      },
+      button: {
+        refresh: 'Yenile',
+        refresh_locations: 'Konumları Yenile',
+        refresh_map: 'Haritayı Yenile',
+        get_browser_location: '📍 Tarayıcıdan Konumumu Al',
+        send_location: 'Konum Gönder',
+        download_pdf: 'PDF İndir',
+        suggest_vehicle: 'En Uygun Aracı Öner',
+        add_stop: '+ Durak Ekle',
+        create_route: 'Rota Oluştur',
+        upload_csv: 'CSV Yükle ve Rota Oluştur',
+        filter: 'Filtrele',
+        clear_filters: 'Filtreleri Temizle',
+        prev_page: 'Önceki Sayfa',
+        next_page: 'Sonraki Sayfa',
+        add_vehicle: 'Araç Ekle',
+      },
+      label: {
+        latitude: 'Enlem (latitude)',
+        longitude: 'Boylam (longitude)',
+        distance_km: 'Mesafe (km)',
+        expected_revenue: 'Beklenen Gelir (TL)',
+        package_weight: 'Paket Ağırlığı (kg)',
+        origin: 'Nereden',
+        destination: 'Nereye',
+        vehicle: 'Araç',
+        assigned_driver_id: 'Atanan Sürücü ID (opsiyonel)',
+        stops_optional: 'Duraklar (opsiyonel)',
+        route_name: 'Rota Adı',
+        assign_driver_optional: 'Sürücü Ata (opsiyonel)',
+        csv_file: 'CSV Dosyası',
+        search: 'Ara',
+        status: 'Durum',
+        vehicle_type: 'Araç Tipi',
+        sort_by: 'Sırala',
+        direction: 'Yön',
+        min_profit: 'Min. Kâr (TL)',
+        max_profit: 'Maks. Kâr (TL)',
+        min_carbon: 'Min. Karbon (kg)',
+        max_carbon: 'Maks. Karbon (kg)',
+        plate: 'Plaka',
+        capacity_kg: 'Kapasite (kg)',
+        cost_per_km: 'Maliyet (TL/km)',
+        carbon_per_km: 'Karbon (kg/km)',
+        active: 'Aktif',
+        action_filter: 'İşlem',
+        role_filter: 'Rol',
+        entity_type_filter: 'Varlık Tipi',
+        csv_row: 'Satır',
+        csv_field: 'Alan',
+        csv_error: 'Hata',
+        csv_sample_format: 'Örnek CSV Formatı',
+      },
+      select: {
+        all: 'Tümü',
+        no_assignment: 'Atama yok',
+        status_pending: 'Bekliyor',
+        status_assigned: 'Atandı',
+        status_in_progress: 'Yolda',
+        status_delivered: 'Teslim Edildi',
+        status_cancelled: 'İptal Edildi',
+        vehicle_electric_van: 'Elektrikli Van',
+        vehicle_diesel_van: 'Dizel Van',
+        vehicle_motorcycle: 'Motosiklet',
+        sort_created_at: 'Oluşturulma Tarihi',
+        sort_distance: 'Mesafe',
+        sort_profit: 'Kâr',
+        sort_carbon: 'Karbon',
+        sort_status: 'Durum',
+        direction_desc: 'Azalan',
+        direction_asc: 'Artan',
+        role_admin: 'Yönetici',
+        role_driver: 'Sürücü',
+      },
+      table: {
+        route: 'Güzergah',
+        distance: 'Mesafe',
+        vehicle_type: 'Araç Tipi',
+        status: 'Durum',
+        est_carbon: 'Tahmini Karbon',
+        assigned_driver: 'Atanan Sürücü',
+        stops: 'Duraklar',
+        action: 'İşlem',
+        plate: 'Plaka',
+        type: 'Tip',
+        capacity: 'Kapasite (kg)',
+        cost_per_km: 'Maliyet/km (TL)',
+        carbon_per_km: 'Karbon/km (kg)',
+        active: 'Aktif',
+        date: 'Tarih',
+        user: 'Kullanıcı',
+        role: 'Rol',
+        operation: 'İşlem',
+        description: 'Açıklama',
+        entity_type: 'Varlık Tipi',
+      },
+      reco: {
+        recommended_vehicle: 'Önerilen Araç',
+        alternatives: 'Alternatifler',
+      },
+      vehicles: { add_new: 'Yeni Araç Ekle' },
+      report: {
+        assessment: 'Değerlendirme',
+        financial_summary: 'Finansal Özet',
+        carbon_summary: 'Karbon Özeti',
+        risk_summary: 'Risk Özeti',
+        recommendation_summary: 'Öneri Özeti',
+        operation_quality: 'Operasyon Kalitesi',
+        total_alerts: 'Toplam Uyarı',
+        high: 'Yüksek',
+        medium: 'Orta',
+        low: 'Düşük',
+        total_recommendations: 'Toplam Öneri',
+        high_priority: 'Yüksek Öncelik',
+        medium_priority: 'Orta Öncelik',
+        low_priority: 'Düşük Öncelik',
+      },
+      settings: {
+        profile_heading: 'Profil Bilgileri',
+        profile_fullname: 'Ad Soyad',
+        profile_email: 'E-posta',
+        profile_role: 'Rol',
+        profile_save: 'Kaydet',
+        profile_saved: 'Bilgileriniz güncellendi.',
+        fullname_required: 'Ad Soyad boş olamaz.',
+        appearance_heading: 'Görünüm',
+        theme_label: 'Tema',
+        theme_light: 'Açık',
+        theme_dark: 'Koyu',
+        theme_system: 'Sistem',
+        language_label: 'Dil',
+        security_heading: 'Hesap Güvenliği',
+        password_label: 'Şifre Değiştir',
+        coming_soon: 'Yakında',
+        security_note: 'Şifre değiştirme özelliği yakında aktif olacak.',
+        notifications_heading: 'Bildirim Tercihleri',
+        notif_critical: 'Kritik uyarılar',
+        notif_routes: 'Rota atamaları',
+        notif_recommendations: 'Karbon / kârlılık önerileri',
+        system_heading: 'Sistem Bilgisi',
+        system_app_name: 'Uygulama',
+        system_environment: 'Ortam',
+        system_mode: 'Mod',
+        system_mode_demo: 'Demo',
+      },
+    },
+    en: {
+      sidebar: { role_admin: 'Admin Panel', role_driver: 'Driver Panel' },
+      menu: {
+        'yonetici-ozeti': 'Admin Overview',
+        'arac-onerisi': 'Smart Vehicle Suggestion',
+        'rotalar-admin': 'Routes',
+        'rotalar-driver': 'My Routes',
+        'yeni-rota': 'Create Route',
+        'csv-ice-aktar': 'Import CSV',
+        araclar: 'Vehicles',
+        'kurye-haritasi': 'Courier Map',
+        uyarilar: 'Alerts',
+        oneriler: 'Recommendations',
+        rapor: 'Sustainability Report',
+        'islem-gecmisi': 'Activity Log',
+        'ai-danisman': 'AI Advisor',
+        'teslimat-haritasi': 'Delivery Map',
+        'konum-guncelle': 'Update My Location',
+        ayarlar: 'Settings',
+      },
+      topbar: { logout: 'Log Out', menu_aria: 'Menu' },
+      banner: { role_mismatch: 'This account does not match the selected role.', close_aria: 'Close' },
+      auth: {
+        eyebrow: 'Operations Platform',
+        tagline: 'Bring your route, vehicle, courier and delivery data together in one panel — manage profitability and carbon impact side by side.',
+        feature1_text: 'Route, vehicle and delivery tracking in one panel',
+        feature2_text: 'Optimize profit and carbon impact together',
+        feature3_text: 'Instant analysis with the Gemini-powered AI Advisor',
+        welcome: 'Welcome',
+        welcome_sub: 'Sign in to continue or create a new account.',
+        tab_login: 'Sign In',
+        tab_register: 'Sign Up',
+        login_role_label: 'Sign-in Type',
+        role_admin: '🧭 Admin Sign-in',
+        role_driver: '🚴 Driver Sign-in',
+        email_label: 'Email',
+        email_placeholder: 'you@company.com',
+        password_label: 'Password',
+        password_placeholder: '••••••••',
+        login_submit: 'Sign In',
+        fullname_label: 'Full Name / Company Contact',
+        fullname_placeholder: 'e.g. Jane Doe',
+        role_label: 'Role',
+        role_admin_register: '🧭 Admin',
+        role_driver_register: '🚴 Driver',
+        register_password_placeholder: 'At least 6 characters',
+        register_submit: 'Sign Up',
+      },
+      page: {
+        'kurye-haritasi': { title: 'Live Courier Map', subtitle: 'Operations tracking screen — live driver locations and active routes' },
+        'teslimat-haritasi': { title: 'Delivery Map', subtitle: 'Your location and the stops you will deliver to' },
+        'konum-guncelle': { title: 'Update My Location', subtitle: 'Share your live location so admins can see it on the map' },
+        'yonetici-ozeti': { title: 'Admin Overview', subtitle: 'Fleet-wide profit, carbon and delivery performance' },
+        uyarilar: { title: 'Alerts', subtitle: 'Risk center — routes and deliveries that need attention' },
+        oneriler: { title: 'Recommendations', subtitle: 'Action center — suggestions to boost profitability and sustainability' },
+        rapor: { title: 'Sustainability Report', subtitle: 'Management report — financial, carbon and operations summaries' },
+        'rotalar-admin': { title: 'Routes', subtitle: 'Operations table — filter, search and manage all your routes' },
+        'rotalar-driver': { title: 'My Routes', subtitle: 'Routes assigned to you, stops and delivery actions' },
+        'arac-onerisi': { title: 'Smart Vehicle Suggestion', subtitle: 'Decision support screen — find the best vehicle for a route' },
+        'yeni-rota': { title: 'Create Route', subtitle: 'Enter route, vehicle and stop details — profit/carbon are calculated automatically' },
+        'csv-ice-aktar': { title: 'Import Route via CSV', subtitle: 'Data import tool — upload a bulk stop list in one go' },
+        routes_list: { title: 'Route List & Filters' },
+        araclar: { title: 'Vehicles', subtitle: 'Fleet management — view vehicles and add new ones' },
+        'islem-gecmisi': { title: 'Activity Log', subtitle: 'Audit log — who did what, and when' },
+        'ai-danisman': { title: 'AI Advisor', subtitle: 'Gemini-powered chat — instant analysis and suggestions based on your data' },
+        ayarlar: { title: 'Settings', subtitle: 'Manage your account, appearance and preferences' },
+      },
+      stat: {
+        total_routes: 'Total Routes',
+        total_distance: 'Total Distance (km)',
+        total_revenue: 'Total Revenue',
+        total_cost: 'Total Cost',
+        total_profit: 'Total Profit',
+        total_carbon: 'Total Carbon (kg)',
+        avg_profit_per_route: 'Avg. Profit per Route',
+        avg_carbon_per_route: 'Avg. Carbon per Route (kg)',
+        best_route: 'Most Profitable Route',
+        worst_route: 'Least Profitable Route',
+        electric_routes: 'Electric Routes',
+        diesel_routes: 'Diesel Routes',
+        motorcycle_routes: 'Motorcycle Routes',
+        delivery_quality: 'Delivery Quality',
+        total_stops: 'Total Stops',
+        delivered: 'Delivered',
+        failed: 'Failed',
+        skipped: 'Skipped',
+        retry_scheduled: 'Retry Scheduled',
+        pending: 'Pending',
+        success_rate: 'Delivery Success Rate',
+        total_est_carbon: 'Total Estimated Carbon (kg)',
+      },
+      button: {
+        refresh: 'Refresh',
+        refresh_locations: 'Refresh Locations',
+        refresh_map: 'Refresh Map',
+        get_browser_location: '📍 Get My Location from Browser',
+        send_location: 'Send Location',
+        download_pdf: 'Download PDF',
+        suggest_vehicle: 'Suggest Best Vehicle',
+        add_stop: '+ Add Stop',
+        create_route: 'Create Route',
+        upload_csv: 'Upload CSV & Create Route',
+        filter: 'Filter',
+        clear_filters: 'Clear Filters',
+        prev_page: 'Previous Page',
+        next_page: 'Next Page',
+        add_vehicle: 'Add Vehicle',
+      },
+      label: {
+        latitude: 'Latitude',
+        longitude: 'Longitude',
+        distance_km: 'Distance (km)',
+        expected_revenue: 'Expected Revenue',
+        package_weight: 'Package Weight (kg)',
+        origin: 'From',
+        destination: 'To',
+        vehicle: 'Vehicle',
+        assigned_driver_id: 'Assigned Driver ID (optional)',
+        stops_optional: 'Stops (optional)',
+        route_name: 'Route Name',
+        assign_driver_optional: 'Assign Driver (optional)',
+        csv_file: 'CSV File',
+        search: 'Search',
+        status: 'Status',
+        vehicle_type: 'Vehicle Type',
+        sort_by: 'Sort By',
+        direction: 'Direction',
+        min_profit: 'Min. Profit',
+        max_profit: 'Max. Profit',
+        min_carbon: 'Min. Carbon (kg)',
+        max_carbon: 'Max. Carbon (kg)',
+        plate: 'Plate',
+        capacity_kg: 'Capacity (kg)',
+        cost_per_km: 'Cost per km',
+        carbon_per_km: 'Carbon per km (kg)',
+        active: 'Active',
+        action_filter: 'Action',
+        role_filter: 'Role',
+        entity_type_filter: 'Entity Type',
+        csv_row: 'Row',
+        csv_field: 'Field',
+        csv_error: 'Error',
+        csv_sample_format: 'Sample CSV Format',
+      },
+      select: {
+        all: 'All',
+        no_assignment: 'No assignment',
+        status_pending: 'Pending',
+        status_assigned: 'Assigned',
+        status_in_progress: 'In Progress',
+        status_delivered: 'Delivered',
+        status_cancelled: 'Cancelled',
+        vehicle_electric_van: 'Electric Van',
+        vehicle_diesel_van: 'Diesel Van',
+        vehicle_motorcycle: 'Motorcycle',
+        sort_created_at: 'Created At',
+        sort_distance: 'Distance',
+        sort_profit: 'Profit',
+        sort_carbon: 'Carbon',
+        sort_status: 'Status',
+        direction_desc: 'Descending',
+        direction_asc: 'Ascending',
+        role_admin: 'Admin',
+        role_driver: 'Driver',
+      },
+      table: {
+        route: 'Route',
+        distance: 'Distance',
+        vehicle_type: 'Vehicle Type',
+        status: 'Status',
+        est_carbon: 'Est. Carbon',
+        assigned_driver: 'Assigned Driver',
+        stops: 'Stops',
+        action: 'Action',
+        plate: 'Plate',
+        type: 'Type',
+        capacity: 'Capacity (kg)',
+        cost_per_km: 'Cost/km',
+        carbon_per_km: 'Carbon/km (kg)',
+        active: 'Active',
+        date: 'Date',
+        user: 'User',
+        role: 'Role',
+        operation: 'Action',
+        description: 'Description',
+        entity_type: 'Entity Type',
+      },
+      reco: {
+        recommended_vehicle: 'Recommended Vehicle',
+        alternatives: 'Alternatives',
+      },
+      vehicles: { add_new: 'Add New Vehicle' },
+      report: {
+        assessment: 'Assessment',
+        financial_summary: 'Financial Summary',
+        carbon_summary: 'Carbon Summary',
+        risk_summary: 'Risk Summary',
+        recommendation_summary: 'Recommendation Summary',
+        operation_quality: 'Operation Quality',
+        total_alerts: 'Total Alerts',
+        high: 'High',
+        medium: 'Medium',
+        low: 'Low',
+        total_recommendations: 'Total Recommendations',
+        high_priority: 'High Priority',
+        medium_priority: 'Medium Priority',
+        low_priority: 'Low Priority',
+      },
+      settings: {
+        profile_heading: 'Profile Information',
+        profile_fullname: 'Full Name',
+        profile_email: 'Email',
+        profile_role: 'Role',
+        profile_save: 'Save',
+        profile_saved: 'Your information has been updated.',
+        fullname_required: 'Full name cannot be empty.',
+        appearance_heading: 'Appearance',
+        theme_label: 'Theme',
+        theme_light: 'Light',
+        theme_dark: 'Dark',
+        theme_system: 'System',
+        language_label: 'Language',
+        security_heading: 'Account Security',
+        password_label: 'Change Password',
+        coming_soon: 'Coming soon',
+        security_note: 'Password change will be available soon.',
+        notifications_heading: 'Notification Preferences',
+        notif_critical: 'Critical alerts',
+        notif_routes: 'Route assignments',
+        notif_recommendations: 'Carbon / profitability recommendations',
+        system_heading: 'System Info',
+        system_app_name: 'Application',
+        system_environment: 'Environment',
+        system_mode: 'Mode',
+        system_mode_demo: 'Demo',
+      },
+    },
+  };
+
+  function getLang() {
+    try {
+      return localStorage.getItem(LANG_KEY) || 'tr';
+    } catch (e) {
+      return 'tr';
+    }
+  }
+
+  let currentLang = getLang();
+
+  function t(key) {
+    const parts = key.split('.');
+    let node = TRANSLATIONS[currentLang];
+    for (const part of parts) {
+      node = node && node[part];
+    }
+    if (node === undefined) {
+      node = TRANSLATIONS.tr;
+      for (const part of parts) {
+        node = node && node[part];
+      }
+    }
+    return node === undefined ? key : node;
+  }
+
+  function updateLangUI() {
+    document.querySelectorAll('[data-lang-option]').forEach((btn) => {
+      btn.classList.toggle('active', btn.getAttribute('data-lang-option') === currentLang);
+    });
+  }
+
+  let currentPageKey = null;
+
+  function applyTranslations() {
+    document.querySelectorAll('[data-i18n]').forEach((el) => {
+      el.textContent = t(el.getAttribute('data-i18n'));
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
+      el.setAttribute('placeholder', t(el.getAttribute('data-i18n-placeholder')));
+    });
+    document.querySelectorAll('[data-i18n-aria-label]').forEach((el) => {
+      el.setAttribute('aria-label', t(el.getAttribute('data-i18n-aria-label')));
+    });
+    document.documentElement.setAttribute('lang', currentLang);
+    updateLangUI();
+    if (currentUser) {
+      buildSidebar(currentUser.role);
+      document.querySelectorAll('.sidebar-link').forEach((el) => {
+        el.classList.toggle('active', el.dataset.page === currentPageKey);
+      });
+      const routesTitle = document.getElementById('routes-page-title');
+      const routesSubtitle = document.getElementById('routes-page-subtitle');
+      if (routesTitle) routesTitle.textContent = t(currentUser.role === 'admin' ? 'page.rotalar-admin.title' : 'page.rotalar-driver.title');
+      if (routesSubtitle) routesSubtitle.textContent = t(currentUser.role === 'admin' ? 'page.rotalar-admin.subtitle' : 'page.rotalar-driver.subtitle');
+    }
+  }
+
+  function setLang(lang) {
+    currentLang = lang === 'en' ? 'en' : 'tr';
+    try {
+      localStorage.setItem(LANG_KEY, currentLang);
+    } catch (e) {}
+    applyTranslations();
+  }
+
+  function initLang() {
+    currentLang = getLang();
+    applyTranslations();
+  }
 
   // --- Frontend console logger (F12 Console) ---
   // Teknik/performans loglaridir; audit log (kullanici islem gecmisi) ile karistirilmamali.
@@ -1564,28 +2390,30 @@
   };
 
   const ADMIN_MENU = [
-    { key: 'yonetici-ozeti', label: 'Yönetici Özeti', icon: '📊' },
-    { key: 'arac-onerisi', label: 'Akıllı Araç Önerisi', icon: '🧭' },
-    { key: 'rotalar', label: 'Rotalar', icon: '🛣️' },
-    { key: 'yeni-rota', label: 'Yeni Rota Oluştur', icon: '➕' },
-    { key: 'csv-ice-aktar', label: 'CSV İçe Aktar', icon: '📥' },
-    { key: 'araclar', label: 'Araçlar', icon: '🚚' },
-    { key: 'kurye-haritasi', label: 'Kurye Haritası', icon: '📍' },
-    { key: 'uyarilar', label: 'Uyarılar', icon: '⚠️' },
-    { key: 'oneriler', label: 'Öneriler', icon: '💡' },
-    { key: 'rapor', label: 'Sürdürülebilirlik Raporu', icon: '🌱' },
-    { key: 'islem-gecmisi', label: 'İşlem Geçmişi', icon: '🕒' },
-    { key: 'ai-danisman', label: 'AI Danışman', icon: '✦' },
+    { key: 'yonetici-ozeti', labelKey: 'yonetici-ozeti', icon: '📊' },
+    { key: 'arac-onerisi', labelKey: 'arac-onerisi', icon: '🧭' },
+    { key: 'rotalar', labelKey: 'rotalar-admin', icon: '🛣️' },
+    { key: 'yeni-rota', labelKey: 'yeni-rota', icon: '➕' },
+    { key: 'csv-ice-aktar', labelKey: 'csv-ice-aktar', icon: '📥' },
+    { key: 'araclar', labelKey: 'araclar', icon: '🚚' },
+    { key: 'kurye-haritasi', labelKey: 'kurye-haritasi', icon: '📍' },
+    { key: 'uyarilar', labelKey: 'uyarilar', icon: '⚠️' },
+    { key: 'oneriler', labelKey: 'oneriler', icon: '💡' },
+    { key: 'rapor', labelKey: 'rapor', icon: '🌱' },
+    { key: 'islem-gecmisi', labelKey: 'islem-gecmisi', icon: '🕒' },
+    { key: 'ai-danisman', labelKey: 'ai-danisman', icon: '✦' },
+    { key: 'ayarlar', labelKey: 'ayarlar', icon: '⚙️' },
   ];
 
   const DRIVER_MENU = [
-    { key: 'rotalar', label: 'Rotalarım', icon: '🛣️' },
-    { key: 'teslimat-haritasi', label: 'Teslimat Haritası', icon: '🗺️' },
-    { key: 'konum-guncelle', label: 'Konumumu Güncelle', icon: '📍' },
+    { key: 'rotalar', labelKey: 'rotalar-driver', icon: '🛣️' },
+    { key: 'teslimat-haritasi', labelKey: 'teslimat-haritasi', icon: '🗺️' },
+    { key: 'konum-guncelle', labelKey: 'konum-guncelle', icon: '📍' },
+    { key: 'ayarlar', labelKey: 'ayarlar', icon: '⚙️' },
   ];
 
   function buildSidebar(role) {
-    document.getElementById('sidebar-role-tag').textContent = role === 'admin' ? 'Yönetici Paneli' : 'Kurye Paneli';
+    document.getElementById('sidebar-role-tag').textContent = t(role === 'admin' ? 'sidebar.role_admin' : 'sidebar.role_driver');
     const menu = role === 'admin' ? ADMIN_MENU : DRIVER_MENU;
     const nav = document.getElementById('sidebar-nav');
     nav.innerHTML = '';
@@ -1594,13 +2422,14 @@
       link.type = 'button';
       link.className = 'sidebar-link';
       link.dataset.page = item.key;
-      link.innerHTML = `<span class="sidebar-link-icon">${item.icon}</span><span>${item.label}</span>`;
+      link.innerHTML = `<span class="sidebar-link-icon">${item.icon}</span><span>${t('menu.' + item.labelKey)}</span>`;
       link.onclick = () => showPage(item.key);
       nav.appendChild(link);
     });
   }
 
   function showPage(pageKey) {
+    currentPageKey = pageKey;
     document.querySelectorAll('#page-content [data-page]').forEach((el) => el.classList.add('hidden'));
     document.querySelectorAll(`#page-content [data-page="${pageKey}"]`).forEach((el) => el.classList.remove('hidden'));
 
@@ -1620,6 +2449,7 @@
     else if (pageKey === 'oneriler') loadRecommendations();
     else if (pageKey === 'rapor') loadSustainabilityReport();
     else if (pageKey === 'islem-gecmisi') loadAuditLogs();
+    else if (pageKey === 'ayarlar') loadSettingsPage();
 
     closeMobileSidebar();
   }
@@ -2038,7 +2868,7 @@
 
     document.getElementById('user-info').innerHTML =
       `${currentUser.full_name} <span style="color: var(--muted);">(${currentUser.email})</span>` +
-      `<span class="topbar-role-pill">${currentUser.role === 'admin' ? 'Yönetici' : 'Kurye'}</span>`;
+      `<span class="topbar-role-pill">${t(currentUser.role === 'admin' ? 'select.role_admin' : 'select.role_driver')}</span>`;
 
     if (currentUser.role === 'admin') {
       document.getElementById('vehicle-recommendation-card').classList.remove('hidden');
@@ -2077,6 +2907,81 @@
 
     buildSidebar(currentUser.role);
     showPage(currentUser.role === 'admin' ? 'yonetici-ozeti' : 'rotalar');
+  }
+
+  // --- Ayarlar (Settings) sayfası ---
+  const NOTIF_PREFS_KEY = 'logipulse_notif_prefs';
+
+  function getNotificationPrefs() {
+    try {
+      return JSON.parse(localStorage.getItem(NOTIF_PREFS_KEY)) || { critical: true, routes: true, recommendations: true };
+    } catch (e) {
+      return { critical: true, routes: true, recommendations: true };
+    }
+  }
+
+  function saveNotificationPrefs() {
+    const prefs = {
+      critical: document.getElementById('notif-critical').checked,
+      routes: document.getElementById('notif-routes').checked,
+      recommendations: document.getElementById('notif-recommendations').checked,
+    };
+    try {
+      localStorage.setItem(NOTIF_PREFS_KEY, JSON.stringify(prefs));
+    } catch (e) {}
+  }
+
+  function loadSettingsPage() {
+    document.getElementById('settings-fullname').value = currentUser.full_name;
+    document.getElementById('settings-email').value = currentUser.email;
+    document.getElementById('settings-role').value = t(currentUser.role === 'admin' ? 'select.role_admin' : 'select.role_driver');
+    document.getElementById('settings-profile-msg').textContent = '';
+    document.getElementById('settings-profile-msg').className = 'msg';
+
+    const prefs = getNotificationPrefs();
+    document.getElementById('notif-critical').checked = prefs.critical;
+    document.getElementById('notif-routes').checked = prefs.routes;
+    document.getElementById('notif-recommendations').checked = prefs.recommendations;
+
+    document.getElementById('settings-env').textContent = window.location.hostname || 'localhost';
+
+    updateThemeUI(getThemePref());
+    updateLangUI();
+  }
+
+  async function saveProfileSettings() {
+    const msg = document.getElementById('settings-profile-msg');
+    const fullName = document.getElementById('settings-fullname').value.trim();
+    if (!fullName) {
+      msg.textContent = t('settings.fullname_required');
+      msg.className = 'msg error';
+      return;
+    }
+    const btn = document.getElementById('settings-profile-save-btn');
+    btn.disabled = true;
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/auth/me`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ full_name: fullName }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Güncelleme başarısız.');
+      currentUser.full_name = data.full_name;
+      document.getElementById('user-info').innerHTML =
+        `${currentUser.full_name} <span style="color: var(--muted);">(${currentUser.email})</span>` +
+        `<span class="topbar-role-pill">${t(currentUser.role === 'admin' ? 'select.role_admin' : 'select.role_driver')}</span>`;
+      msg.textContent = t('settings.profile_saved');
+      msg.className = 'msg success';
+    } catch (err) {
+      msg.textContent = err.message;
+      msg.className = 'msg error';
+    } finally {
+      btn.disabled = false;
+    }
   }
 
   async function loadAlerts() {
@@ -2652,10 +3557,8 @@
 
   async function loadRoutes() {
     const isDriverView = currentUser.role !== 'admin';
-    document.getElementById('routes-page-title').textContent = isDriverView ? 'Rotalarım' : 'Rotalar';
-    document.getElementById('routes-page-subtitle').textContent = isDriverView
-      ? 'Size atanan rotalar, duraklar ve teslimat aksiyonları'
-      : 'Operasyon tablosu — tüm rotalarınızı filtreleyin, arayın ve yönetin';
+    document.getElementById('routes-page-title').textContent = t(isDriverView ? 'page.rotalar-driver.title' : 'page.rotalar-admin.title');
+    document.getElementById('routes-page-subtitle').textContent = t(isDriverView ? 'page.rotalar-driver.subtitle' : 'page.rotalar-admin.subtitle');
     const endpoint = currentUser.role === 'admin' ? 'routes' : 'routes/my-routes';
     const query = buildRouteQueryString();
     const res = await fetch(`${API_BASE}/api/v1/${endpoint}?${query}`, {
@@ -3108,6 +4011,9 @@
       msg.className = 'msg error';
     }
   }
+
+  initTheme();
+  initLang();
 </script>
 
 </body>

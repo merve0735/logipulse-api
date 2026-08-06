@@ -26,6 +26,7 @@ class AuditAction(str, Enum):
     SUSTAINABILITY_PDF_DOWNLOADED = "sustainability_pdf_downloaded"
     DEMO_SEEDED = "demo_seeded"
     AI_ADVISOR_ASKED = "ai_advisor_asked"
+    PROFILE_UPDATED = "profile_updated"
 
 
 class AuditLogOut(BaseModel):

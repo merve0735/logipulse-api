@@ -5,7 +5,7 @@ from app.api.v1.audit_logs import get_audit_log_service
 from app.core.deps import CurrentUser, get_current_user
 from app.core.security import create_access_token, hash_password, verify_password
 from app.models.audit_log import AuditAction
-from app.models.user import Token, UserCreate, UserLogin, UserOut, UserRole
+from app.models.user import Token, UserCreate, UserLogin, UserOut, UserRole, UserUpdate
 from app.repositories.user_repository import UserRepository
 from app.services.audit_log_service import AuditLogService
 
@@ -84,4 +84,30 @@ async def read_current_user(
     user = await repo.find_one({"_id": ObjectId(current_user.id)})
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanıcı bulunamadı")
+    return to_user_out(user)
+
+
+@router.patch("/me", response_model=UserOut)
+async def update_current_user(
+    update_in: UserUpdate,
+    current_user: CurrentUser = Depends(get_current_user),
+    repo: UserRepository = Depends(get_user_repository),
+    audit_service: AuditLogService = Depends(get_audit_log_service),
+):
+    await repo.update_one({"_id": ObjectId(current_user.id)}, {"full_name": update_in.full_name})
+
+    user = await repo.find_one({"_id": ObjectId(current_user.id)})
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanıcı bulunamadı")
+
+    await audit_service.record(
+        actor_user_id=current_user.id,
+        actor_email=current_user.email,
+        actor_role=current_user.role,
+        action=AuditAction.PROFILE_UPDATED,
+        description=f"{current_user.email} profilini güncelledi (ad soyad).",
+        entity_type="user",
+        entity_id=current_user.id,
+    )
+
     return to_user_out(user)
