@@ -100,7 +100,7 @@ Demo accounts (password in parentheses):
 
 | Role | Email | Password |
 | --- | --- | --- |
-| Admin | `admin@logipulse.demo` | `Demo1234` |
+| Admin | `admin@logipulse.demo` | `Admin12345` |
 | Driver | `driver1@logipulse.demo` | `Driver12345` |
 | Driver | `driver2@logipulse.demo` | `Driver12345` |
 | Driver | `driver3@logipulse.demo` (no saved location, shown as "no location" on the map) | `Driver12345` |

@@ -103,7 +103,7 @@ This was verified directly, not assumed: there is no `delete_one`, `delete_many`
 
 ### Seed script guard
 
-`app/scripts/seed_demo_data.py` is idempotent and never deletes data even when run against the wrong database — but it *does* insert demo users with known passwords (`admin@logipulse.demo` / `Demo1234`, etc.) and fake routes/vehicles, which is exactly the kind of thing you don't want mixed into real user data by accident.
+`app/scripts/seed_demo_data.py` is idempotent and never deletes data even when run against the wrong database — but it *does* insert demo users with known passwords (`admin@logipulse.demo` / `Admin12345`, etc.) and fake routes/vehicles, which is exactly the kind of thing you don't want mixed into real user data by accident.
 
 It now refuses to run when `ENVIRONMENT=production`, unless you explicitly opt in:
 
