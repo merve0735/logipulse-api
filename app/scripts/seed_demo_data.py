@@ -10,8 +10,11 @@ Mevcut veritabanini silmez, sadece eksik demo kayitlarini ekler.
 """
 
 import asyncio
+import os
+import sys
 from datetime import datetime, timezone
 
+from app.core.config import settings
 from app.core.security import hash_password
 from app.db.mongodb import close_mongo_connection, connect_to_mongo
 from app.models.audit_log import AuditAction
@@ -366,7 +369,29 @@ async def seed_audit_log(audit_service: AuditLogService) -> None:
     print("  audit log kaydi olusturuldu: demo_seeded")
 
 
+def _guard_against_production() -> None:
+    """ENVIRONMENT=production iken bu scriptin yanlislikla calistirilmasini engeller.
+
+    Seed script tehlikeli/silici bir islem yapmaz (idempotenttir, mevcut veriyi
+    hicbir zaman silmez) ama yine de canli veritabanina sahte demo kullanici/arac/
+    rota ekleyebilir. Bu, gercek kullanicilarla ayni koleksiyonlari kirletir ve
+    demo hesaplarin (bilinen sifrelerle) production'da var olmasina yol acar.
+    Bu yuzden production'da acik bir onay olmadan calismasi engellenir.
+    """
+    if settings.is_production and os.environ.get("ALLOW_SEED_IN_PRODUCTION") != "yes":
+        print(
+            "HATA: ENVIRONMENT=production tespit edildi.\n"
+            "Demo seed scripti production ortaminda calistirilamaz - bu, canli "
+            "kullanicilarla ayni veritabanina bilinen sifreli demo hesaplar ve sahte "
+            "rota/arac verisi ekler.\n"
+            "Gercekten kasitli olarak devam etmek istiyorsan (onerilmez), "
+            "ALLOW_SEED_IN_PRODUCTION=yes ortam degiskeniyle tekrar calistir."
+        )
+        sys.exit(1)
+
+
 async def main() -> None:
+    _guard_against_production()
     await connect_to_mongo()
     try:
         user_repo = UserRepository()

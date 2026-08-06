@@ -94,7 +94,7 @@ docker compose exec api python -m app.scripts.seed_demo_data
 
 This creates demo users, a small fleet (electric van, diesel van, motorcycle, and one inactive vehicle), and five routes covering different scenarios (profitable, loss-making, high-carbon, completed, cancelled) with their stops. It also writes one audit log entry (`demo_seeded`) so the seeding action itself is traceable.
 
-The script is safe to run more than once: users are matched by email, vehicles by plate number, and routes by name, so re-running it does not create duplicates. It never deletes or wipes existing data — it only adds what's missing.
+The script is safe to run more than once: users are matched by email, vehicles by plate number, and routes by name, so re-running it does not create duplicates. It never deletes or wipes existing data — it only adds what's missing. It also refuses to run at all when `ENVIRONMENT=production` (see [docs/DEPLOYMENT.md § Production Data Safety](docs/DEPLOYMENT.md#production-data-safety)), so it can't accidentally seed demo accounts into a live database.
 
 Demo accounts (password in parentheses):
 
@@ -210,6 +210,8 @@ docker compose exec api pytest -q
 - MongoDB must not be exposed to the public internet; `docker-compose.prod.yml` already keeps its port internal to the Docker network.
 - Driver location data is personal data under KVKK — see the KVKK note earlier in this README and in [docs/TECH_DECISIONS.md](docs/TECH_DECISIONS.md) before using this with real drivers.
 - The seeded demo accounts (`admin@logipulse.demo`, `driver1@logipulse.demo`, ...) are for local demos only — don't rely on them in a real deployment.
+
+**Production data safety**: redeploying the API never touches your database — it's an external MongoDB Atlas cluster (or your own MongoDB), not something bundled into the API container, and no code path in this project deletes documents (`app/repositories/base.py` only exposes `find_one`/`insert_one`/`update_one`). The demo seed script now refuses to run when `ENVIRONMENT=production` unless you explicitly set `ALLOW_SEED_IN_PRODUCTION=yes`. See [docs/DEPLOYMENT.md § Production Data Safety](docs/DEPLOYMENT.md#production-data-safety) for the full explanation, a `mongodump` backup command, and how old records with missing optional fields are handled safely.
 
 ## Running Tests
 
